@@ -15,7 +15,7 @@ import {
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
-import { MongooseModule } from '@nestjs/mongoose';
+// import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 import { AuthModule } from './auth/auth.module';
@@ -69,7 +69,7 @@ export const THROTTLER_LIMIT = 10;
     JwtModule.register({
       secret: process.env.JWT_SECRET,
     }),
-    MongooseModule.forRoot(process.env.MONGODB_URI),
+    // MongooseModule.forRoot(process.env.MONGODB_URI),
     AuthModule,
     LogModule,
     HealthCheckModule,

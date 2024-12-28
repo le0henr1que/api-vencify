@@ -24,7 +24,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const configDefault = new DocumentBuilder()
-    .setTitle('nest-api api')
+    .setTitle('vencify api')
     .setVersion('0.1')
     .addBearerAuth({
       type: 'http',
