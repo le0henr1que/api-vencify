@@ -1,15 +1,17 @@
 FROM public.ecr.aws/docker/library/node:18
 
-
 WORKDIR /app
-COPY . .
+
+# Copia apenas o package.json e package-lock.json para instalar dependências
+COPY package*.json ./
 
 RUN npm ci
+
+# Copia o restante do código após instalar dependências
+COPY . .
+
 RUN npm run build
 RUN npx prisma generate
-
-COPY prisma ./prisma
-COPY . .
 
 ARG DATABASE_URL
 ENV SERVER_PORT=80
@@ -20,7 +22,7 @@ ENV ENCRYPTION_KEY="ZydMYrVB9JPFGM3NMhcjeX9eciSoStw3"
 
 EXPOSE 80
 
-RUN chmod +x /api-server/startProduction.sh
+RUN chmod +x /app/startProduction.sh
 RUN chown root:root startProduction.sh
 
-CMD /api-server/startProduction.sh
+CMD ["/app/startProduction.sh"]
