@@ -17,7 +17,6 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 // import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
-
 import { AuthModule } from './auth/auth.module';
 import { AtGuard } from './auth/guards';
 import { AssignmentsGuard } from './auth/guards/assignments.guard';
