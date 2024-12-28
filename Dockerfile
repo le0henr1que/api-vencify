@@ -1,36 +1,26 @@
-FROM node:18
+FROM public.ecr.aws/docker/library/node:18
 
-# Crie e defina o diretório de trabalho
+
 WORKDIR /app
+COPY . .
 
-# Instale o NestJS CLI globalmente
-RUN npm install -g @nestjs/cli
+RUN npm ci
+RUN npm run build
+RUN npx prisma generate
 
-# Copie os arquivos de dependências
-COPY package*.json ./
-
-# Instale as dependências
-RUN npm install
-RUN npm install @prisma/client@latest
-
-# Copie o diretório prisma e o restante do código da aplicação
 COPY prisma ./prisma
 COPY . .
 
 ARG DATABASE_URL
+ENV SERVER_PORT=80
 ENV DATABASE_URL=${DATABASE_URL}
+ENV DEBUG=true
+ENV SESSION_SECRET_KEY="98fQTDh2uNSRVjrRxFn5V4WgPP99QawUkLHqoDdBFHBXQi3Z"
+ENV ENCRYPTION_KEY="ZydMYrVB9JPFGM3NMhcjeX9eciSoStw3"
 
-# Execute as migrações do Prisma
-RUN npx prisma migrate deploy
+EXPOSE 80
 
-# Gere o Prisma Client
-RUN npx prisma generate
+RUN chmod +x /api-server/startProduction.sh
+RUN chown root:root startProduction.sh
 
-# Compile a aplicação NestJS
-RUN npm run build
-
-# Exponha a porta que a aplicação irá utilizar
-EXPOSE 3333
-
-# Defina o comando para iniciar a aplicação
-CMD ["npm", "run", "start:prod"]
+CMD /api-server/startProduction.sh
