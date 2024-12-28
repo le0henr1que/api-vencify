@@ -10,7 +10,6 @@ function ctrl_c() {
 }
 
 set -e
-
 echo "Starting Postgres Docker and waiting for it to become ready."
 npm run start:postgres
 
