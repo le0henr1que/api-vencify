@@ -20,7 +20,7 @@ RUN npm ci --prefer-offline --no-audit --no-fund
 # Executa o build do projeto
 RUN npm run build
 
-COPY dist ./dist
+# COPY dist ./dist
 
 # Configuração de variáveis de ambiente
 ARG DATABASE_URL
