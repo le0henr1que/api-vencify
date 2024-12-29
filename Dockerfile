@@ -1,37 +1,23 @@
+# Use a imagem base oficial do Node.js
 FROM public.ecr.aws/docker/library/node:20
 
-# Instalação de dependências básicas
-# RUN apt update -y && \
-#     apt upgrade -y && \
-#     apt install -y curl \
-#     libaio1 \
-#     unzip \
-#     git \
-#     gnupg \
-#     ca-certificates \
-#     bash \
-#     xz-utils \
-#     libssl-dev 
-
-# Configurar Node.js 20.17.0
-# RUN curl -fsSL https://nodejs.org/dist/v20.17.0/node-v20.17.0-linux-x64.tar.xz | tar -xJC /usr/local --strip-components=1
-# ENV PATH="/usr/local/node-v20.17.0-linux-x64/bin:${PATH}"
-
-# Instalar Nest CLI globalmente
+# Instalação global do Nest CLI
 RUN npm install -g @nestjs/cli
 
+# Define o diretório de trabalho
 WORKDIR /app
-COPY dist/ ./dist
-COPY package.json ./package.json
-COPY package-lock.json ./package-lock.json
-COPY tsconfig.json ./tsconfig.json
-COPY prisma/ ./prisma
+
+# Copia apenas os arquivos essenciais para a instalação das dependências
+COPY package.json package-lock.json tsconfig.json ./
+
+# Copia os arquivos de Prisma e o script de inicialização
+COPY prisma ./prisma
 COPY startProduction.sh ./startProduction.sh
 
-# Instala as dependências usando npm
-RUN npm ci --cache .npm --prefer-offline
+# Instala as dependências de forma limpa e eficiente
+RUN npm ci --prefer-offline --no-audit --no-fund
 
-# Executa o build
+# Executa o build do projeto
 RUN npm run build
 
 # Configuração de variáveis de ambiente
@@ -42,8 +28,11 @@ ENV DEBUG=true
 ENV SESSION_SECRET_KEY="98fQTDh2uNSRVjrRxFn5V4WgPP99QawUkLHqoDdBFHBXQi3Z"
 ENV ENCRYPTION_KEY="ZydMYrVB9JPFGM3NMhcjeX9eciSoStw3"
 
+# Expondo a porta para acesso ao container
 EXPOSE 80
 
-# Inicia o processo
+# Garante que o script de inicialização seja executável
 RUN chmod +x /app/startProduction.sh
+
+# Define o comando de inicialização do container
 CMD ["/app/startProduction.sh"]
