@@ -1,21 +1,21 @@
-FROM ubuntu:22.04
+FROM public.ecr.aws/docker/library/node:20
 
 # Instalação de dependências básicas
-RUN apt update -y && \
-    apt upgrade -y && \
-    apt install -y curl \
-    libaio1 \
-    unzip \
-    git \
-    gnupg \
-    ca-certificates \
-    bash \
-    xz-utils \
-    libssl-dev 
+# RUN apt update -y && \
+#     apt upgrade -y && \
+#     apt install -y curl \
+#     libaio1 \
+#     unzip \
+#     git \
+#     gnupg \
+#     ca-certificates \
+#     bash \
+#     xz-utils \
+#     libssl-dev 
 
 # Configurar Node.js 20.17.0
-RUN curl -fsSL https://nodejs.org/dist/v20.17.0/node-v20.17.0-linux-x64.tar.xz | tar -xJC /usr/local --strip-components=1
-ENV PATH="/usr/local/node-v20.17.0-linux-x64/bin:${PATH}"
+# RUN curl -fsSL https://nodejs.org/dist/v20.17.0/node-v20.17.0-linux-x64.tar.xz | tar -xJC /usr/local --strip-components=1
+# ENV PATH="/usr/local/node-v20.17.0-linux-x64/bin:${PATH}"
 
 # Instalar Nest CLI globalmente
 RUN npm install -g @nestjs/cli
