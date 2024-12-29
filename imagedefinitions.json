@@ -1,0 +1,162 @@
+{
+  "family": "TASK_DEFINITION_FAMILY-value",
+  "networkMode": "awsvpc",
+  "containerDefinitions": [
+    {
+      "name": "TASK_DEFINITION_FAMILY-value",
+      "image": "FULL_IMAGE_NAME-value",
+      "cpu": ECS_CPU-value,
+      "memory": ECS_MEMORY-value,
+      "memoryReservation": 1024,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "hostPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "NODE_ENV-value"
+        },
+        {
+          "name": "AT_SECRET",
+          "value": "AT_SECRET-value"
+        },
+        {
+          "name": "RT_SECRET",
+          "value": "RT_SECRET-value"
+        },
+        {
+          "name": "APP_URL_REDIRECT",
+          "value": "APP_URL_REDIRECT-value"
+        },
+        {
+          "name": "JWT_OPERATOR_ACCESS_LIFETIME",
+          "value": "JWT_OPERATOR_ACCESS_LIFETIME-value"
+        },
+        {
+          "name": "JWT_ACCESS_LIFETIME",
+          "value": "JWT_ACCESS_LIFETIME-value"
+        },
+        {
+          "name": "JWT_REFRESH_LIFETIME",
+          "value": "JWT_REFRESH_LIFETIME-value"
+        },
+        {
+          "name": "LDAP_BASE_DN",
+          "value": "LDAP_BASE_DN-value"
+        },
+        {
+          "name": "LDAP_URL",
+          "value": "LDAP_URL-value"
+        },
+        {
+          "name": "API_KEY",
+          "value": "API_KEY-value"
+        },
+        {
+          "name": "APP_PORT",
+          "value": "APP_PORT-value"
+        },
+        {
+          "name": "DATABASE_URL",
+          "value": "DATABASE_URL-value"
+        },
+        {
+          "name": "AWS_BUCKET_REGION",
+          "value": "AWS_BUCKET_REGION-value"
+        },
+        {
+          "name": "AWS_BUCKET_NAME",
+          "value": "AWS_BUCKET_NAME-value"
+        },
+        {
+          "name": "AZURE_AD_AUDIENCE",
+          "value": "AZURE_AD_AUDIENCE-value"
+        },
+        {
+          "name": "AZURE_AD_CLIENT_ID",
+          "value": "AZURE_AD_CLIENT_ID-value"
+        },
+        {
+          "name": "AZURE_AD_TENANT_ID",
+          "value": "AZURE_AD_TENANT_ID-value"
+        },
+        {
+          "name": "AZURE_AD_ID_SECRET",
+          "value": "AZURE_AD_ID_SECRET-value"
+        },
+        {
+          "name": "AWS_SECRET_ACCESS_KEY",
+          "value": "AWS_SECRET_ACCESS_KEY-value"
+        },
+        {
+          "name": "AWS_ACCESS_KEY_ID",
+          "value": "AWS_ACCESS_KEY_ID-value"
+        },
+        {
+          "name": "AZURE_AD_SECRET",
+          "value": "AZURE_AD_SECRET-value"
+        },
+        {
+          "name": "AZURE_AD_EMAIL_OPTIONS_FROM",
+          "value": "AZURE_AD_EMAIL_OPTIONS_FROM-value"
+        },
+        {
+          "name": "ENVIRONMENT_QA_TRIGGER_EMAIL",
+          "value": "ENVIRONMENT_QA_TRIGGER_EMAIL-value"
+        },
+        {
+          "name": "VAR_DATABASE_NAME",
+          "value": "VAR_DATABASE_NAME-value"
+        },
+        {
+          "name": "VAR_DATABASE_TYPE",
+          "value": "VAR_DATABASE_TYPE-value"
+        },
+        {
+          "name": "VAR_DATABASE_HOST",
+          "value": "VAR_DATABASE_HOST-value"
+        },
+        {
+          "name": "VAR_DATABASE_PORT",
+          "value": "VAR_DATABASE_PORT-value"
+        },
+        {
+          "name": "VAR_DATABASE_USERNAME",
+          "value": "VAR_DATABASE_USERNAME-value"
+        },
+        {
+          "name": "VAR_DATABASE_PASSWORD",
+          "value": "VAR_DATABASE_PASSWORD-value"
+        },
+        {
+          "name": "VAR_DATABASE",
+          "value": "VAR_DATABASE-value"
+        },
+        {
+          "name": "VAR_DATABASE_SERVICE_NAME",
+          "value": "VAR_DATABASE_SERVICE_NAME-value"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/TASK_DEFINITION_FAMILY-value",
+          "awslogs-region": "AWS_DEFAULT_REGION-value",
+          "awslogs-create-group": "true",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "ECS_CPU-value",
+  "memory": "ECS_MEMORY-value",
+  "executionRoleArn": "ROLE-value"
+}
