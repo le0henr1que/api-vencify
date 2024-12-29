@@ -4,6 +4,7 @@ WORKDIR /api-server
 
 COPY . .
 
+RUN npm install -g @nestjs/cli
 RUN npm ci
 RUN npm run build
 RUN npx prisma generate
