@@ -6,19 +6,19 @@ import { randomUUID } from 'crypto';
 import { MessagesHelperKey, getMessage } from 'src/helpers/messages.helper';
 import { isTestEnviroment } from 'src/utils/environment';
 import { Languages } from 'src/utils/language-preference';
-import * as SibApiV3Sdk from 'sib-api-v3-sdk';
+// import * as SibApiV3Sdk from 'sib-api-v3-sdk';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private readonly brevoClient: SibApiV3Sdk.TransactionalEmailsApi;
+  // private readonly brevoClient: SibApiV3Sdk.TransactionalEmailsApi;
 
   constructor() {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    const defaultClient = SibApiV3Sdk.ApiClient.instance;
-    const apiKey = defaultClient.authentications['api-key'];
-    apiKey.apiKey = process.env.BREVO_API_KEY;
-    this.brevoClient = new SibApiV3Sdk.TransactionalEmailsApi();
+    // const defaultClient = SibApiV3Sdk.ApiClient.instance;
+    // const apiKey = defaultClient.authentications['api-key'];
+    // apiKey.apiKey = process.env.BREVO_API_KEY;
+    // this.brevoClient = new SibApiV3Sdk.TransactionalEmailsApi();
   }
 
   /**
@@ -122,17 +122,16 @@ export class EmailService {
     },
   ): Promise<void> {
     try {
-      const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-      sendSmtpEmail.subject = subject;
-      sendSmtpEmail.htmlContent = markup;
-      sendSmtpEmail.sender = {
-        email: process.env.BREVO_SENDER_EMAIL,
-        name: 'Your Name',
-      };
-      sendSmtpEmail.to = [{ email: sendToEmail }];
-
-      await this.brevoClient.sendTransacEmail(sendSmtpEmail);
-      this.logger.log(`Email sent to ${sendToEmail}`);
+      // const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+      // sendSmtpEmail.subject = subject;
+      // sendSmtpEmail.htmlContent = markup;
+      // sendSmtpEmail.sender = {
+      //   email: process.env.BREVO_SENDER_EMAIL,
+      //   name: 'Your Name',
+      // };
+      // sendSmtpEmail.to = [{ email: sendToEmail }];
+      // await this.brevoClient.sendTransacEmail(sendSmtpEmail);
+      // this.logger.log(`Email sent to ${sendToEmail}`);
     } catch (error) {
       this.logger.error(`Failed to send email to ${sendToEmail}`, error);
       throw error;
