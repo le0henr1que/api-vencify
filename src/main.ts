@@ -10,7 +10,12 @@ async function bootstrap() {
     logger: ['error', 'log', 'warn', 'debug'],
   });
 
-  app.enableCors();
+  app.enableCors({
+    origin: '*', // Ajuste conforme necessário
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
   app.use(helmet());
 
   app.useGlobalPipes(
