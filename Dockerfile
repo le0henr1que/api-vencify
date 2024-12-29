@@ -9,7 +9,7 @@ RUN npm ci
 RUN npm run build
 RUN npx prisma generate
 
-ENV SERVER_PORT=80
+ENV APP_PORT=80
 
 ENV DATABASE_URL="postgresql://nestrest2admin:mysecretpassword@localhost:5432/nestrest2test?schema=public"
 ENV DEBUG=true
