@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "TB_BATCH" ADD COLUMN     "status" "StatusEnum" NOT NULL DEFAULT 'ACTIVE';
+
+-- AlterTable
+ALTER TABLE "TB_SUPPLIER" ADD COLUMN     "status" "StatusEnum" NOT NULL DEFAULT 'ACTIVE',
+ADD COLUMN     "version" INTEGER NOT NULL DEFAULT 1;

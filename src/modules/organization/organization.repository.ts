@@ -130,7 +130,7 @@ export class OrganizationRepository extends BaseRepository<OrganizationTypeMap> 
       },
       data: {
         status: StatusEnum.INACTIVE,
-        deletedAt: new Date(),
+        deleted_at: new Date(),
       },
     });
   }

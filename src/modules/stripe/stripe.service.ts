@@ -35,7 +35,7 @@ export class StripeService {
               where: {
                 Assignment: {
                   status: StatusEnum.ACTIVE,
-                  deletedAt: null,
+                  deleted_at: null,
                 },
               },
               include: {
@@ -46,7 +46,7 @@ export class StripeService {
               where: {
                 role: {
                   status: StatusEnum.ACTIVE,
-                  deletedAt: null,
+                  deleted_at: null,
                 },
               },
               include: {

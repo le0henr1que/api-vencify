@@ -12,7 +12,7 @@ export const AuditLogSchema = new mongoose.Schema({
   status: { type: String, required: true },
   method: { type: String, required: true },
   information: { type: String, required: true },
-  createdAt: { type: Date, required: true },
+  created_at: { type: Date, required: true },
 });
 
 export interface AuditLogMongo extends mongoose.Document {
@@ -24,7 +24,7 @@ export interface AuditLogMongo extends mongoose.Document {
   status: LogStatusEnum;
   method: MethodEnum;
   information: string;
-  createdAt: Date;
+  created_at: Date;
 }
 
 export const LogsModel = mongoose.model<AuditLogMongo>(

@@ -13,7 +13,7 @@ model AuditLog {
   email       String        @db.VarChar(255)
   url         String        @db.VarChar(2000)
   information String        @db.VarChar(2000)
-  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  created_at  DateTime      @default(now()) @db.Timestamptz(3)
   action      LogActionEnum
   status      LogStatusEnum
   method      MethodEnum
@@ -24,20 +24,40 @@ model AuditLog {
 model Organization {
   id               String             @id @default(uuid()) @map("_id")
   name             String             @db.VarChar(255)
-  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime?          @updatedAt @db.Timestamptz(3)
+  created_at       DateTime           @default(now()) @db.Timestamptz(3)
+  updated_at       DateTime?          @updatedAt @db.Timestamptz(3)
   planId           String?            @db.VarChar
   ownerId          String?            @db.VarChar
   status           StatusEnum         @default(ACTIVE)
-  deletedAt        DateTime?          @db.Timestamptz(3)
+  deleted_at       DateTime?          @db.Timestamptz(3)
   version          Int                @default(1)
   OrganizationUser OrganizationUser[]
   owner            User?              @relation("OrganizationOwner", fields: [ownerId], references: [id])
   quotas           Quota[]
   subscription     Subscription[]
-  // users            User[]             @relation("UserOrganizations")
+
+  address_id String?  @db.VarChar
+  address    Address? @relation(fields: [address_id], references: [id])
 
   @@map("TB_ORGANIZATION")
+}
+
+model Address {
+  id           String         @id @default(uuid()) @map("_id")
+  street       String         @db.VarChar(255)
+  number       String?        @db.VarChar(50)
+  complement   String?        @db.VarChar(255)
+  neighborhood String?        @db.VarChar(255)
+  city         String         @db.VarChar(255)
+  state        String         @db.VarChar(255)
+  postalCode   String         @db.VarChar(20)
+  country      String         @db.VarChar(255)
+  created_at   DateTime       @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime?      @updatedAt @db.Timestamptz(3)
+  deleted_at   DateTime?      @db.Timestamptz(3)
+  Organization Organization[]
+
+  @@map("TB_ADDRESS")
 }
 
 model OrganizationUser {
@@ -62,10 +82,10 @@ model Plan {
   price          Decimal        @db.Decimal(10, 2)
   durationInDays Int
   userLimit      Int
-  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime?      @updatedAt @db.Timestamptz(3)
+  created_at     DateTime       @default(now()) @db.Timestamptz(3)
+  updated_at     DateTime?      @updatedAt @db.Timestamptz(3)
   status         StatusEnum     @default(ACTIVE)
-  deletedAt      DateTime?      @db.Timestamptz(3)
+  deleted_at     DateTime?      @db.Timestamptz(3)
   version        Int            @default(1)
   quota          Quota[]
   subscriptions  Subscription[]
@@ -79,7 +99,7 @@ model Subscription {
   startDate      DateTime     @default(now()) @db.Timestamptz(3)
   endDate        DateTime     @db.Timestamptz(3)
   status         StatusEnum   @default(ACTIVE)
-  deletedAt      DateTime?    @db.Timestamptz(3)
+  deleted_at     DateTime?    @db.Timestamptz(3)
   version        Int          @default(1)
   organizationId String       @db.VarChar
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -92,10 +112,10 @@ model Quota {
   id             String       @id @default(uuid()) @map("_id")
   organizationId String       @db.VarChar
   usersCreated   Int          @default(0)
-  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime?    @updatedAt @db.Timestamptz(3)
+  created_at     DateTime     @default(now()) @db.Timestamptz(3)
+  updated_at     DateTime?    @updatedAt @db.Timestamptz(3)
   planId         String       @db.VarChar
-  deletedAt      DateTime?    @db.Timestamptz(3)
+  deleted_at     DateTime?    @db.Timestamptz(3)
   version        Int          @default(1)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   plan           Plan         @relation(fields: [planId], references: [id], onDelete: Cascade)
@@ -104,81 +124,123 @@ model Quota {
 }
 
 model User {
-  id                 String             @id @default(uuid()) @map("_id")
-  name               String             @db.VarChar(255)
-  email              String             @unique @db.VarChar(255)
-  password           String             @db.VarChar(255)
-  loginAttempts      Int                @default(0)
-  blocked            Boolean            @default(false)
-  ip                 String?            @db.VarChar(100)
-  createdAt          DateTime           @default(now()) @db.Timestamptz(3)
-  refreshToken       String?            @db.VarChar(255)
-  recoveryToken      String?            @db.VarChar(255)
-  emailVerificationToken String?        @db.VarChar(255) 
-  isEmailVerified    Boolean            @default(false)
-  hasCompletedCheckout Boolean          @default(false)
-  updatedAt          DateTime?          @updatedAt @db.Timestamptz(3)
-  deletedAt          DateTime?          @db.Timestamptz(3)
-  version            Int                @default(1)
-  mediaId            String?
-  status             StatusEnum         @default(ACTIVE)
-  organizationUser   OrganizationUser[]
-  cell               Cell?
-  ownedOrganizations Organization[]     @relation("OrganizationOwner")
-  Media              Media?             @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  id                     String             @id @default(uuid()) @map("_id")
+  name                   String             @db.VarChar(255)
+  email                  String             @unique @db.VarChar(255)
+  password               String             @db.VarChar(255)
+  loginAttempts          Int                @default(0)
+  blocked                Boolean            @default(false)
+  ip                     String?            @db.VarChar(100)
+  created_at             DateTime           @default(now()) @db.Timestamptz(3)
+  refreshToken           String?            @db.VarChar(255)
+  recoveryToken          String?            @db.VarChar(255)
+  emailVerificationToken String?            @db.VarChar(255)
+  isEmailVerified        Boolean            @default(false)
+  hasCompletedCheckout   Boolean            @default(false)
+  updated_at             DateTime?          @updatedAt @db.Timestamptz(3)
+  deleted_at             DateTime?          @db.Timestamptz(3)
+  version                Int                @default(1)
+  mediaId                String?
+  status                 StatusEnum         @default(ACTIVE)
+  organizationUser       OrganizationUser[]
+  ownedOrganizations     Organization[]     @relation("OrganizationOwner")
+  Media                  Media?             @relation(fields: [mediaId], references: [id], onDelete: Cascade)
   // organizations      Organization[]     @relation("UserOrganizations")
 
   @@map("TB_USER")
 }
 
-model Cell {
-  id        String     @id @default(uuid()) @map("_id")
-  createdAt DateTime   @default(now()) @db.Timestamptz(3)
-  deletedAt DateTime?  @db.Timestamptz(3)
-  name      String     @db.VarChar(255)
-  status    StatusEnum @default(ACTIVE)
-  userId    String     @unique
-  user      User       @relation(fields: [userId], references: [id])
-  persons   Person[]
+model Product {
+  id          String     @id @default(uuid()) @map("_id")
+  name        String     @db.VarChar(255)
+  description String?    @db.VarChar(255)
+  price       Decimal    @db.Decimal(10, 2)
+  code        String     @db.VarChar(255)
+  validate    DateTime?  @db.Timestamptz(3)
+  local       String?    @db.VarChar(255)
+  bar_code    String?    @db.VarChar(255)
+  status      StatusEnum @default(ACTIVE)
+  created_at  DateTime   @default(now()) @db.Timestamptz(3)
+  updated_at  DateTime?  @updatedAt @db.Timestamptz(3)
+  deleted_at  DateTime?  @db.Timestamptz(3)
+  version     Int        @default(1)
+  category    Category?  @relation(fields: [category_id], references: [id])
+  category_id String?
+  batches     Batch[]
 
-  @@map("TB_CELL")
+  @@map("TB_PRODUCT")
 }
 
-model Person {
-  id         String         @id @default(uuid()) @map("_id")
-  createdAt  DateTime       @default(now()) @db.Timestamptz(3)
-  deletedAt  DateTime?      @db.Timestamptz(3)
-  name       String         @db.VarChar(255)
-  personType PersonTypeEnum @default(ADULTO)
-  isHost     Boolean        @default(false)
-  isVisitor  Boolean        @default(false)
-  status     StatusEnum     @default(ACTIVE)
-  cellId     String?        @db.VarChar
-  cell       Cell?          @relation(fields: [cellId], references: [id])
+model Batch {
+  id          String     @id @default(uuid()) @map("_id")
+  product     Product    @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  product_id  String
+  quantity    Int        @default(0)
+  batchCode   String     @db.VarChar(255)
+  expires_at  DateTime?  @db.Timestamptz(3)
+  created_at  DateTime   @default(now()) @db.Timestamptz(3)
+  updated_at  DateTime?  @updatedAt @db.Timestamptz(3)
+  deleted_at  DateTime?  @db.Timestamptz(3)
+  supplier    Supplier?  @relation(fields: [supplier_id], references: [id])
+  supplier_id String?
+  version     Int        @default(1)
+  status      StatusEnum @default(ACTIVE)
 
-  @@map("TB_PERSON")
+  @@map("TB_BATCH")
+}
+
+model Supplier {
+  id          String     @id @default(uuid()) @map("_id")
+  name        String     @db.VarChar(255)
+  contactInfo String?    @db.VarChar(255)
+  created_at  DateTime   @default(now()) @db.Timestamptz(3)
+  updated_at  DateTime?  @updatedAt @db.Timestamptz(3)
+  deleted_at  DateTime?  @db.Timestamptz(3)
+  version     Int        @default(1)
+  status      StatusEnum @default(ACTIVE)
+  batches     Batch[]
+  Category    Category[]
+
+  @@map("TB_SUPPLIER")
+}
+
+model Category {
+  id          String     @id @default(uuid()) @map("_id")
+  name        String     @db.VarChar(255)
+  description String?    @db.VarChar(255)
+  status      StatusEnum @default(ACTIVE)
+  created_at  DateTime   @default(now()) @db.Timestamptz(3)
+  updated_at  DateTime?  @updatedAt @db.Timestamptz(3)
+  deleted_at  DateTime?  @db.Timestamptz(3)
+  version     Int        @default(1)
+
+  supplier    Supplier  @relation(fields: [supplier_id], references: [id])
+  supplier_id String
+  products    Product[]
+
+  @@map("TB_CATEGORY")
 }
 
 model UserAssignment {
-  id                             String            @id @default(uuid()) @map("_id")
-  create                         Boolean           @default(false)
-  read                           Boolean           @default(false)
-  update                         Boolean           @default(false)
-  delete                         Boolean           @default(false)
-  assignmentsId                  String            @db.VarChar
-  organizationUserId             String            @db.VarChar
-  organizationId                 String?
-  userId                         String?
-  organizationUserRelation       OrganizationUser? @relation("UserOrganizations", fields: [organizationId, userId], references: [organizationId, userId])
-  Assignment                     Assignment        @relation(fields: [assignmentsId], references: [id], onDelete: Cascade)
+  id                       String            @id @default(uuid()) @map("_id")
+  create                   Boolean           @default(false)
+  read                     Boolean           @default(false)
+  update                   Boolean           @default(false)
+  delete                   Boolean           @default(false)
+  assignmentsId            String            @db.VarChar
+  organizationUserId       String            @db.VarChar
+  organizationId           String?
+  userId                   String?
+  organizationUserRelation OrganizationUser? @relation("UserOrganizations", fields: [organizationId, userId], references: [organizationId, userId])
+  Assignment               Assignment        @relation(fields: [assignmentsId], references: [id], onDelete: Cascade)
 
   @@map("TB_USER_ASSIGNMENT")
 }
 
 model Assignment {
   id                 String           @id @default(uuid()) @map("_id")
-  createdAt          DateTime         @default(now()) @db.Timestamptz(3)
-  deletedAt          DateTime?        @db.Timestamptz(3)
+  created_at         DateTime         @default(now()) @db.Timestamptz(3)
+  deleted_at         DateTime?        @db.Timestamptz(3)
   name               AssignmentsEnum  @unique
   status             StatusEnum       @default(ACTIVE)
   ProfileAssignments UserAssignment[]
@@ -187,24 +249,24 @@ model Assignment {
 }
 
 model UserRole {
-  id                             String            @id @default(uuid()) @map("_id")
-  roleId                         String            @db.VarChar
-  organizationUserId             String            @db.VarChar
-  organizationId                 String?
-  userId                         String?
-  organizationUserRelation       OrganizationUser? @relation("OrganizationUserRole", fields: [organizationId, userId], references: [organizationId, userId])
-  role                           Role              @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  id                       String            @id @default(uuid()) @map("_id")
+  roleId                   String            @db.VarChar
+  organizationUserId       String            @db.VarChar
+  organizationId           String?
+  userId                   String?
+  organizationUserRelation OrganizationUser? @relation("OrganizationUserRole", fields: [organizationId, userId], references: [organizationId, userId])
+  role                     Role              @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@map("TB_USER_ROLE")
 }
 
 model Role {
-  id        String     @id @default(uuid()) @map("_id")
-  createdAt DateTime   @default(now()) @db.Timestamptz(3)
-  deletedAt DateTime?  @db.Timestamptz(3)
-  name      RoleEnum   @unique
-  status    StatusEnum @default(ACTIVE)
-  UserRole  UserRole[]
+  id         String     @id @default(uuid()) @map("_id")
+  created_at DateTime   @default(now()) @db.Timestamptz(3)
+  deleted_at DateTime?  @db.Timestamptz(3)
+  name       RoleEnum   @unique
+  status     StatusEnum @default(ACTIVE)
+  UserRole   UserRole[]
 
   @@map("TB_ROLE")
 }
@@ -273,4 +335,9 @@ enum AssignmentsEnum {
   USER
   ORGANIZATION
   PLAN
+  CATEGORY
+  PRODUCT
+  BATCH
+  SUPPLIER
+  ADDRESS
 }

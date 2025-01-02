@@ -96,7 +96,7 @@ const seed = async (prisma: PrismaClient, baseDataSeed: IBaseDataSeed) => {
         refreshToken: null,
         ip: null,
         blocked: false,
-        deletedAt: null,
+        deleted_at: null,
         version: 1,
         loginAttempts: 0,
       },

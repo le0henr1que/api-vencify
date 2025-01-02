@@ -29,12 +29,12 @@ export class AssignmentEntity implements Assignment {
     example: '2021-01-01T00:00:00.000Z',
   })
   @AutoMap()
-  createdAt: Date;
+  created_at: Date;
 
   @ApiPropertyOptional({
     description: 'The deleted date',
     example: '2021-01-01T00:00:00.000Z',
   })
   @AutoMap()
-  deletedAt: Date;
+  deleted_at: Date;
 }

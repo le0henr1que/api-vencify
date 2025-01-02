@@ -33,10 +33,10 @@ export class UserMapping extends AutomapperProfile {
           mapFrom((source) => source.id),
         ),
         forMember(
-          (destination) => destination.createdAt,
+          (destination) => destination.created_at,
           mapFrom(
             (source) =>
-              source?.createdAt && format(source?.createdAt, 'dd/MM/yyyy'),
+              source?.created_at && format(source?.created_at, 'dd/MM/yyyy'),
           ),
         ),
         forMember(
@@ -64,7 +64,7 @@ export class UserMapping extends AutomapperProfile {
           (destination) => destination.createdAt,
           mapFrom(
             (source) =>
-              source?.createdAt && format(source?.createdAt, 'dd/MM/yyyy'),
+              source?.created_at && format(source?.created_at, 'dd/MM/yyyy'),
           ),
         ),
         forMember(

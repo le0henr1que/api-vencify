@@ -12,6 +12,6 @@ export const revertPlanToInitialState = async (
 ) => {
   await prisma.plan.update({
     where: { id: module_lcId },
-    data: { deletedAt: null, status: StatusEnum.ACTIVE, version: 1 },
+    data: { deleted_at: null, status: StatusEnum.ACTIVE, version: 1 },
   });
 };

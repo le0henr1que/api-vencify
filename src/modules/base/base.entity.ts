@@ -19,19 +19,19 @@ export class BaseEntity {
     example: '03/11/2024',
   })
   @AutoMap()
-  createdAt: Date | any;
+  created_at: Date | any;
 
   @ApiResponseProperty({
     example: '2021-01-01T00:00:00.000Z',
   })
   @AutoMap()
-  updatedAt: Date;
+  updated_at: Date;
 
   @ApiResponseProperty({
     example: '2021-01-01T00:00:00.000Z',
   })
   @AutoMap()
-  deletedAt: Date;
+  deleted_at: Date;
 
   @ApiProperty({
     description: 'Status do registro',

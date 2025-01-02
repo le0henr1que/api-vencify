@@ -367,7 +367,7 @@ export class AuthService {
         );
       }
 
-      if (user.status === StatusEnum.INACTIVE || user.deletedAt != null) {
+      if (user.status === StatusEnum.INACTIVE || user.deleted_at != null) {
         await this.logService.createAuditLog(
           new AuditLog(
             functionName,
@@ -967,7 +967,7 @@ export class AuthService {
       !userDb ||
       userDb.blocked ||
       userDb.status === StatusEnum.INACTIVE ||
-      userDb.deletedAt != null
+      userDb.deleted_at != null
     ) {
       this.logger.warn(
         `Usuário ${dto.email} não está apto a receber o email de recuperação`,
@@ -1130,7 +1130,7 @@ export class AuthService {
           recoveryToken: true,
           blocked: true,
           status: true,
-          deletedAt: true,
+          deleted_at: true,
         },
         currentUser,
         languagePreference,
@@ -1341,7 +1341,7 @@ export class AuthService {
       guardUser(
         {
           blocked: userInDb?.blocked,
-          deletedAt: userInDb?.deletedAt,
+          deletedAt: userInDb?.deleted_at,
           email: userInDb?.email,
           status: userInDb?.status,
         },

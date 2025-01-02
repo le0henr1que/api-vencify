@@ -5,17 +5,14 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 
+process.env.TZ = 'America/Sao_Paulo';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'log', 'warn', 'debug'],
   });
 
-  app.enableCors({
-    origin: '*', // Ajuste conforme necessário
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  });
+  app.enableCors();
   app.use(helmet());
 
   app.useGlobalPipes(
@@ -29,7 +26,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const configDefault = new DocumentBuilder()
-    .setTitle('vencify api')
+    .setTitle('nest-api api')
     .setVersion('0.1')
     .addBearerAuth({
       type: 'http',

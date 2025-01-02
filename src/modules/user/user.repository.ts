@@ -192,7 +192,7 @@ export class UserRepository extends BaseRepository<UserTypeMap> {
     return await prisma.user.findUnique({
       where: {
         id,
-        deletedAt: null,
+        deleted_at: null,
         status: {
           not: StatusEnum.INACTIVE,
         },
@@ -212,7 +212,7 @@ export class UserRepository extends BaseRepository<UserTypeMap> {
               where: {
                 Assignment: {
                   status: StatusEnum.ACTIVE,
-                  deletedAt: null,
+                  deleted_at: null,
                 },
               },
               include: {
@@ -223,7 +223,7 @@ export class UserRepository extends BaseRepository<UserTypeMap> {
               where: {
                 role: {
                   status: StatusEnum.ACTIVE,
-                  deletedAt: null,
+                  deleted_at: null,
                 },
               },
               include: {
@@ -253,7 +253,7 @@ export class UserRepository extends BaseRepository<UserTypeMap> {
       },
       data: {
         status: StatusEnum.INACTIVE,
-        deletedAt: new Date(),
+        deleted_at: new Date(),
         version: {
           increment: 1,
         },
@@ -282,7 +282,7 @@ export class UserRepository extends BaseRepository<UserTypeMap> {
               where: {
                 Assignment: {
                   status: StatusEnum.ACTIVE,
-                  deletedAt: null,
+                  deleted_at: null,
                 },
               },
               include: {
@@ -293,7 +293,7 @@ export class UserRepository extends BaseRepository<UserTypeMap> {
               where: {
                 role: {
                   status: StatusEnum.ACTIVE,
-                  deletedAt: null,
+                  deleted_at: null,
                 },
               },
               include: {
@@ -353,7 +353,7 @@ export class UserRepository extends BaseRepository<UserTypeMap> {
               where: {
                 Assignment: {
                   status: StatusEnum.ACTIVE,
-                  deletedAt: null,
+                  deleted_at: null,
                 },
               },
               include: {
@@ -364,7 +364,7 @@ export class UserRepository extends BaseRepository<UserTypeMap> {
               where: {
                 role: {
                   status: StatusEnum.ACTIVE,
-                  deletedAt: null,
+                  deleted_at: null,
                 },
               },
               include: {

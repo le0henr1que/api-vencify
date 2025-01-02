@@ -9,7 +9,7 @@ export class AuditLog {
   action: LogActionEnum;
   method: MethodEnum;
   information: string;
-  createdAt: Date;
+  created_at: Date;
   functionCalled?: string;
 
   constructor(

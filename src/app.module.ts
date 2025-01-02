@@ -1,3 +1,7 @@
+import { ProductModule } from './modules/product/product.module';
+import { SupplierModule } from './modules/supplier/supplier.module';
+import { BatchModule } from './modules/batch/batch.module';
+import { CategoryModule } from './modules/category/category.module';
 import { PlanModule } from './modules/plan/plan.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { classes } from '@automapper/classes';
@@ -78,6 +82,10 @@ export const THROTTLER_LIMIT = 10;
     OrganizationModule,
     PlanModule,
     StripeModule,
+    CategoryModule,
+    BatchModule,
+    SupplierModule,
+    ProductModule,
   ],
 })
 export class AppModule implements NestModule {
