@@ -10,5 +10,4 @@ export class OrganizationEntity extends BaseEntity implements Organization {
   address_id: string;
   ownerId: string;
   name: string;
-  planId: string;
 }

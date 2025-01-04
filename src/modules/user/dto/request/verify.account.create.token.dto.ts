@@ -7,7 +7,7 @@ export class verifyAccountCreateDtos {
     description: 'ID do usuário',
   })
   @IsNotEmpty({ message: 'O campo de email deve ser preenchido' })
-  userId?: string;
+  email?: string;
 
   @ApiProperty({
     example: '32131dsadd-dsalkdajsk12-2131',

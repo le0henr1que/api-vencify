@@ -1,6 +1,6 @@
 import { AutoMap } from '@automapper/classes';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { AssignmentsEnum, StatusEnum, User } from '@prisma/client';
+import { $Enums, StatusEnum, User } from '@prisma/client';
 import { BaseEntity } from 'src/modules/base/base.entity';
 
 import { Media } from '../../base/entity/media.entity';
@@ -8,6 +8,10 @@ import { UserAssignmentEntity } from './user.assignment.entity';
 import { UserRoleEntity } from './user.role.entity';
 
 export class UserEntity extends BaseEntity implements User {
+  notifications_enabled: boolean;
+  notification_time_enum: $Enums.NotificationTimeEnum;
+  notification_time: number;
+  login_method: $Enums.LoginMethodEnum;
   hasCompletedCheckout: boolean;
   isEmailVerified: boolean;
   emailVerificationToken: string;

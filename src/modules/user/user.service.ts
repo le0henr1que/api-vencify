@@ -645,63 +645,6 @@ export class UserService {
       });
     }
   }
-  async verifyCodeAccountCreate(
-    code: string,
-    id: string,
-    languagePreference: Languages,
-    optionals?: {
-      identifierRequest?: string;
-      transaction?: Prisma.TransactionClient;
-    },
-  ): Promise<boolean> {
-    const identifierRequest = optionals?.identifierRequest || randomUUID();
-    try {
-      this.logger.log(`${identifierRequest} Verify code account create`);
-
-      const user = await this.userRepository.findByIdAsync(
-        id,
-        optionals?.transaction,
-      );
-
-      if (user == null) {
-        this.logger.debug(`${identifierRequest} User not found`);
-        throw new BadRequestException(
-          setMessage(
-            getMessage(
-              MessagesHelperKey.CODE_VERIFICATION_INVALID,
-              languagePreference,
-            ),
-            code,
-          ),
-        );
-      }
-      console.log(user.emailVerificationToken.toString(), 'TOKEN BANCO');
-      console.log(code, 'TOKEN API');
-      if (user.emailVerificationToken.toString() !== code.toString()) {
-        this.logger.debug(`${identifierRequest} Code verification is invalid`);
-        throw new BadRequestException(
-          setMessage(
-            getMessage(
-              MessagesHelperKey.CODE_VERIFICATION_INVALID,
-              languagePreference,
-            ),
-            code,
-          ),
-        );
-      }
-      await this.userRepository.updateAsync(
-        id,
-        { isEmailVerified: true, version: user.version },
-        optionals?.transaction,
-      );
-
-      return true;
-    } catch (error) {
-      handleError(error, languagePreference, {
-        identifierRequest,
-      });
-    }
-  }
 
   async exists(
     where: UserTypeMap[CrudType.WHERE],

@@ -64,6 +64,8 @@ import { EmailDto } from './dto/request/email.dto';
 import { LoginDto } from './dto/request/login.dto';
 import { UserToken } from './dto/response/UserToken';
 import { UserPayload } from './models/UserPayload';
+import { RegisterDto } from './dto/request/register-user.dto';
+import { CodeCheckDto } from './dto/request/code-check.dto';
 
 @Injectable()
 export class AuthService {
@@ -405,175 +407,149 @@ export class AuthService {
       }
     }
   }
-
-  async register(
-    registerDto: UserCreateDto,
-    currentUser: UserPayload,
-    request: AuditLogRequestInformation,
+  async verifyCodeAccountCreate(
+    code: string,
+    email: string,
     languagePreference: Languages,
-  ): Promise<Partial<UserEntity>> {
-    const identifierRequest = randomUUID();
-    const functionName = 'register';
-    this.logger.log('POST IN Auth Service - register');
-    console.log('2');
-
+    optionals?: {
+      identifierRequest?: string;
+      transaction?: Prisma.TransactionClient;
+    },
+  ): Promise<{ id: string }> {
+    const identifierRequest = optionals?.identifierRequest || randomUUID();
     try {
-      return await this.prisma.$transaction(
+      this.logger.log(`${identifierRequest} Verify code account create`);
+
+      const result = await this.prisma.$transaction(
         async (transaction: Prisma.TransactionClient) => {
-          this.logger.debug(
-            `${identifierRequest} Verifying if the user with the email ${registerDto.email} already exists in the database`,
-          );
-
-          const userAlreadyExists = await this.userService.exists(
-            {
-              email: registerDto.email,
-            },
-            currentUser,
-            languagePreference,
-            {
-              identifierRequest,
-              transaction,
-            },
-          );
-          const user = await this.userRepository.findByEmail(registerDto.email);
-
-          if (userAlreadyExists && user.isEmailVerified) {
-            const user = await this.userService.exists(
-              { email: registerDto.email },
-              currentUser,
-              languagePreference,
-              {
-                transaction,
-                identifierRequest,
-              },
-            );
-            const message = `${identifierRequest} Email ${registerDto.email} already registered in the database.`;
-            this.logger.debug(message);
-
-            // TODO: ajustar loos
-            // await this.logService.createAuditLog(
-            //   new AuditLog(
-            //     functionName,
-            //     request.ip,
-            //     request.url,
-            //     MethodEnum[request.method],
-            //     currentUser.email,
-            //     LogStatusEnum.ERROR,
-            //     LogActionEnum.CREATE,
-            //     setMessage(
-            //       getMessage(MessagesHelperKey.CREATE_USER_ERROR, 'pt-BR'),
-            //       registerDto.email,
-            //       message,
-            //     ),
-            //   ),
-            //   {
-            //     identifierRequest,
-            //   },
-            // );
-
-            throw new ConflictException(
-              getMessage(
-                MessagesHelperKey.USER_ALREADY_REGISTERED,
-                languagePreference,
+          const dataCode = await transaction.email_verifications.findFirst({
+            where: { email: email, token: code },
+          });
+          if (dataCode == null) {
+            this.logger.debug(`${identifierRequest} User not found`);
+            throw new BadRequestException(
+              setMessage(
+                getMessage(
+                  MessagesHelperKey.CODE_VERIFICATION_INVALID,
+                  languagePreference,
+                ),
+                code,
               ),
             );
           }
+          if (dataCode.token.toString() !== code.toString()) {
+            this.logger.debug(
+              `${identifierRequest} Code verification is invalid`,
+            );
+            throw new BadRequestException(
+              setMessage(
+                getMessage(
+                  MessagesHelperKey.CODE_VERIFICATION_INVALID,
+                  languagePreference,
+                ),
+                code,
+              ),
+            );
+          }
+          const tokenTimestamp = dataCode.updated_at || dataCode.created_at;
+          const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
 
+          if (tokenTimestamp < twelveHoursAgo) {
+            this.logger.debug(
+              `${identifierRequest} Code verification is expired`,
+            );
+            throw new BadRequestException(
+              setMessage(
+                getMessage(
+                  MessagesHelperKey.CODE_VERIFICATION_EXPIRED,
+                  languagePreference,
+                ),
+                code,
+              ),
+            );
+          }
+          const user = await transaction.user.upsert({
+            where: { email: email },
+            update: { isEmailVerified: true },
+            create: {
+              email: dataCode.email,
+              isEmailVerified: true,
+              name: dataCode.name,
+              password: dataCode.password,
+              emailVerificationToken: dataCode.token,
+            },
+          });
+          await transaction.email_verifications.delete({
+            where: { email: email },
+          });
+          const access_token = await this.jwtService.signAsync(
+            {
+              id: user.id,
+              email: user.email,
+              code: dataCode.token,
+            },
+            {
+              secret: process.env.AT_SECRET_REGISTER,
+              expiresIn: process.env.JWT_ACCESS_LIFETIME_REGISTER,
+            },
+          );
+
+          return { id: user.id, access_token };
+        },
+      );
+      console.log('DSADA', result);
+      return result;
+    } catch (error) {
+      handleError(error, languagePreference, {
+        identifierRequest,
+      });
+    }
+  }
+  async codeCheck(
+    dto: CodeCheckDto,
+    languagePreference: Languages,
+    optionals?: {
+      identifierRequest?: string;
+      transaction?: Prisma.TransactionClient;
+    },
+  ): Promise<any> {
+    const identifierRequest = optionals?.identifierRequest || randomUUID();
+    try {
+      return await this.prisma.$transaction(
+        async (transaction: Prisma.TransactionClient) => {
+          this.logger.log(`${identifierRequest} Code Check`);
+          const isExist = await transaction.user.findFirst({
+            where: { email: dto.email },
+          });
+          if (isExist) {
+            this.logger.debug(`${identifierRequest} User already exists`);
+            throw new ConflictException(
+              setMessage(
+                getMessage(
+                  MessagesHelperKey.USER_ALREADY_REGISTERED,
+                  languagePreference,
+                ),
+                dto.email,
+              ),
+            );
+          }
+          const userCode = await generateVerificationCode(4);
           const generatedPassword: string = generatePassword();
           const hash = await hashData(
-            !registerDto?.password ? generatedPassword : registerDto.password,
+            !dto?.password ? generatedPassword : dto.password,
           );
 
-          this.logger.debug(
-            `${identifierRequest} Password from user ${registerDto.email} hashed successfully`,
-          );
-          // If there is create, update or delete permission without read permission, it will be added
-          // registerDto.assignments.forEach((assignment) => {
-          //   if (
-          //     (assignment.create || assignment.update || assignment.delete) &&
-          //     !assignment.read
-          //   ) {
-          //     assignment.read = true;
-          //   }
-          // });
-          // if (!registerDto.organizationId) {
-          // this.logger.debug(
-          //   `${identifierRequest} Organization ID not found in the request body`,
-          // );
-
-          // TODO: ajustar logs
-          // await this.logService.createAuditLog(
-          //   new AuditLog(
-          //     functionName,
-          //     request.ip,
-          //     request.url,
-          //     MethodEnum[request.method],
-          //     currentUser.email,
-          //     LogStatusEnum.ERROR,
-          //     LogActionEnum.CREATE,
-          //     setMessage(
-          //       getMessage(MessagesHelperKey.CREATE_USER_ERROR, 'pt-BR'),
-          //       registerDto.email,
-          //       getMessage(MessagesHelperKey.ORGANIZATION_NOT_FOUND, 'pt-BR'),
-          //     ),
-          //   ),
-          //   {
-          //     identifierRequest,
-          //   },
-          // );
-
-          // throw new BadRequestException(
-          //   getMessage(
-          //     MessagesHelperKey.ORGANIZATION_NOT_FOUND,
-          //     languagePreference,
-          //   ),
-          // );
-          // }
-
-          const userCode = await generateVerificationCode(6);
-
-          const data: UserTypeMap[CrudType.CREATE] = {
-            email: registerDto.email,
-            name: registerDto.name,
-            password: hash,
-            status: StatusEnum.ACTIVE,
-            loginAttempts: 0,
-            emailVerificationToken: userCode,
-          };
-          const newUser = await transaction.user.upsert({
-            where: { email: registerDto.email },
-            update: {
-              name: registerDto.name,
+          await transaction.email_verifications.upsert({
+            where: { email: dto.email },
+            update: { token: userCode, updated_at: new Date() },
+            create: {
+              email: dto.email,
+              name: dto.name,
               password: hash,
-              status: StatusEnum.ACTIVE,
-              loginAttempts: 0,
-              emailVerificationToken: userCode,
+              token: userCode,
+              created_at: new Date(),
             },
-            create: data,
           });
-          // const newUser = (await this.userService.createAsync(
-          //   data,
-          //   currentUser,
-          //   languagePreference,
-          //   {
-          //     transaction,
-          //     identifierRequest,
-          //   },
-          // )) as UserEntity;
-
-          this.logger.debug(
-            `${identifierRequest} User ${newUser.email} created`,
-          );
-
-          // const tokens: UserToken = await this.getTokens(newUser, {
-          //   identifierRequest,
-          // });
-
-          // await this.updateRt(newUser.id, tokens.refreshToken, {
-          //   transaction,
-          //   identifierRequest,
-          // });
-
           const templatePath = 'src/utils/templates/verification-code.html';
           const templateHtml = readFileSync(templatePath).toString();
 
@@ -584,7 +560,7 @@ export class AuthService {
             );
           }
           const templateBody = registrationTemplateDataBind(templateHtml, {
-            name: registerDto.name,
+            name: dto.email,
             userCode,
           });
           console.log(userCode);
@@ -594,35 +570,34 @@ export class AuthService {
           await this.emailService.sendEmail(
             templateBody,
             subject,
-            registerDto.email,
+            dto.email,
             languagePreference,
             {
               identifierRequest,
             },
           );
+        },
+      );
+    } catch (error) {
+      handleError(error, languagePreference, {
+        identifierRequest,
+      });
+    }
+  }
+  async register(
+    registerDto: UserCreateDto,
+    currentUser: UserPayload,
+    request: AuditLogRequestInformation,
+    languagePreference: Languages,
+  ): Promise<any> {
+    const identifierRequest = randomUUID();
+    const functionName = 'register';
+    this.logger.log('POST IN Auth Service - register');
 
-          // await this.logService.createAuditLog(
-          //   new AuditLog(
-          //     functionName,
-          //     request.ip,
-          //     request.url,
-          //     MethodEnum[request.method],
-          //     currentUser.email,
-          //     LogStatusEnum.SUCCESS,
-          //     LogActionEnum.CREATE,
-          //     setMessage(
-          //       getMessage(MessagesHelperKey.CREATE_USER_SUCCESS, 'pt-BR'),
-          //       newUser.email,
-          //     ),
-          //   ),
-          //   {
-          //     identifierRequest,
-          //   },
-          // );
-
-          return {
-            id: newUser.id,
-          };
+    try {
+      return await this.prisma.$transaction(
+        async (transaction: Prisma.TransactionClient) => {
+          ///continuar aqui
         },
       );
     } catch (error) {
@@ -1087,6 +1062,33 @@ export class AuthService {
           identifierRequest,
         },
       );
+
+      handleError(error, languagePreference, {
+        message: getMessage(
+          MessagesHelperKey.FAIL_SENDING_EMAIL,
+          languagePreference,
+        ),
+        identifierRequest,
+      });
+    }
+  }
+  async registerUser(
+    dto: RegisterDto,
+    request: AuditLogRequestInformation,
+    languagePreference: Languages,
+  ) {
+    const identifierRequest = randomUUID();
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: {
+          email: dto.email,
+        },
+      });
+      if (user) {
+        throw new BadRequestException('Email already exists');
+      }
+    } catch (error) {
+      this.logger.debug('Recovery password email was not sent');
 
       handleError(error, languagePreference, {
         message: getMessage(

@@ -104,11 +104,11 @@ export class OrganizationRepository extends BaseRepository<OrganizationTypeMap> 
         id,
       },
       include: {
-        subscription: {
-          select: {
-            plan: true,
-          },
-        },
+        // subscription: {
+        //   select: {
+        //     plan: true,
+        //   },
+        // },
       },
     });
   }

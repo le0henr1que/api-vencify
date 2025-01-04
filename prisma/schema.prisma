@@ -7,6 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum LoginMethodEnum {
+  EMAIL
+  GOOGLE
+  FACEBOOK
+}
+
+enum NotificationTimeEnum {
+  DAILY
+  WEEKLY
+  MONTHLY
+  HALF_MONTHLY
+  THIRTY_MONTHLY
+}
+
 model AuditLog {
   id          Int           @id @default(autoincrement())
   ip          String        @db.VarChar(255)
@@ -26,15 +40,12 @@ model Organization {
   name             String             @db.VarChar(255)
   created_at       DateTime           @default(now()) @db.Timestamptz(3)
   updated_at       DateTime?          @updatedAt @db.Timestamptz(3)
-  planId           String?            @db.VarChar
   ownerId          String?            @db.VarChar
   status           StatusEnum         @default(ACTIVE)
   deleted_at       DateTime?          @db.Timestamptz(3)
   version          Int                @default(1)
   OrganizationUser OrganizationUser[]
   owner            User?              @relation("OrganizationOwner", fields: [ownerId], references: [id])
-  quotas           Quota[]
-  subscription     Subscription[]
 
   address_id String?  @db.VarChar
   address    Address? @relation(fields: [address_id], references: [id])
@@ -94,60 +105,79 @@ model Plan {
 }
 
 model Subscription {
-  id             String       @id @default(uuid()) @map("_id")
-  planId         String       @db.VarChar
-  startDate      DateTime     @default(now()) @db.Timestamptz(3)
-  endDate        DateTime     @db.Timestamptz(3)
-  status         StatusEnum   @default(ACTIVE)
-  deleted_at     DateTime?    @db.Timestamptz(3)
-  version        Int          @default(1)
-  organizationId String       @db.VarChar
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  plan           Plan         @relation(fields: [planId], references: [id], onDelete: Cascade)
+  id         String     @id @default(uuid()) @map("_id")
+  planId     String     @db.VarChar
+  startDate  DateTime   @default(now()) @db.Timestamptz(3)
+  endDate    DateTime   @db.Timestamptz(3)
+  status     StatusEnum @default(ACTIVE)
+  deleted_at DateTime?  @db.Timestamptz(3)
+  version    Int        @default(1)
+  user_id    String     @db.VarChar
+  user       User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  plan       Plan       @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@map("TB_SUBSCRIPTION")
 }
 
 model Quota {
-  id             String       @id @default(uuid()) @map("_id")
-  organizationId String       @db.VarChar
-  usersCreated   Int          @default(0)
-  created_at     DateTime     @default(now()) @db.Timestamptz(3)
-  updated_at     DateTime?    @updatedAt @db.Timestamptz(3)
-  planId         String       @db.VarChar
-  deleted_at     DateTime?    @db.Timestamptz(3)
-  version        Int          @default(1)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  plan           Plan         @relation(fields: [planId], references: [id], onDelete: Cascade)
+  id           String    @id @default(uuid()) @map("_id")
+  user_id      String    @db.VarChar
+  usersCreated Int       @default(0)
+  created_at   DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime? @updatedAt @db.Timestamptz(3)
+  planId       String    @db.VarChar
+  deleted_at   DateTime? @db.Timestamptz(3)
+  version      Int       @default(1)
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  plan         Plan      @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@map("TB_QUOTA")
 }
 
 model User {
-  id                     String             @id @default(uuid()) @map("_id")
-  name                   String             @db.VarChar(255)
-  email                  String             @unique @db.VarChar(255)
-  password               String             @db.VarChar(255)
-  loginAttempts          Int                @default(0)
-  blocked                Boolean            @default(false)
-  ip                     String?            @db.VarChar(100)
-  created_at             DateTime           @default(now()) @db.Timestamptz(3)
-  refreshToken           String?            @db.VarChar(255)
-  recoveryToken          String?            @db.VarChar(255)
-  emailVerificationToken String?            @db.VarChar(255)
-  isEmailVerified        Boolean            @default(false)
-  hasCompletedCheckout   Boolean            @default(false)
-  updated_at             DateTime?          @updatedAt @db.Timestamptz(3)
-  deleted_at             DateTime?          @db.Timestamptz(3)
-  version                Int                @default(1)
+  id                     String               @id @default(uuid()) @map("_id")
+  name                   String               @db.VarChar(255)
+  email                  String               @unique @db.VarChar(255)
+  password               String               @db.VarChar(255)
+  login_method           LoginMethodEnum      @default(EMAIL)
+  loginAttempts          Int                  @default(0)
+  blocked                Boolean              @default(false)
+  ip                     String?              @db.VarChar(100)
+  created_at             DateTime             @default(now()) @db.Timestamptz(3)
+  refreshToken           String?              @db.VarChar(255)
+  recoveryToken          String?              @db.VarChar(255)
+  emailVerificationToken String?              @db.VarChar(255)
+  isEmailVerified        Boolean              @default(false)
+  hasCompletedCheckout   Boolean              @default(false)
+  updated_at             DateTime?            @updatedAt @db.Timestamptz(3)
+  deleted_at             DateTime?            @db.Timestamptz(3)
+  version                Int                  @default(1)
   mediaId                String?
-  status                 StatusEnum         @default(ACTIVE)
+  status                 StatusEnum           @default(ACTIVE)
   organizationUser       OrganizationUser[]
-  ownedOrganizations     Organization[]     @relation("OrganizationOwner")
-  Media                  Media?             @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  // organizations      Organization[]     @relation("UserOrganizations")
+  ownedOrganizations     Organization[]       @relation("OrganizationOwner")
+  Media                  Media?               @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  notifications_enabled  Boolean              @default(true)
+  notification_time_enum NotificationTimeEnum @default(DAILY)
+  notification_time      Int                  @default(1)
+
+  Subscription Subscription[]
+  Quota        Quota[]
 
   @@map("TB_USER")
+}
+
+model email_verifications {
+  id         String    @id @default(uuid()) @map("_id")
+  email      String    @unique @db.VarChar(255)
+  token      String    @db.VarChar(255)
+  password   String    @db.VarChar(255)
+  name       String    @db.VarChar(255)
+  created_at DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at DateTime? @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
+
+  @@map("TB_EMAIL_VERIFICATIONS")
 }
 
 model Product {

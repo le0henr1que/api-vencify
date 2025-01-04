@@ -282,10 +282,15 @@ export const MessagesHelper = {
     'en-US': 'Invalid code verification',
     'pt-BR': 'Código de verificação inválido',
   },
+  CODE_VERIFICATION_EXPIRED: {
+    'en-US': 'Code verification expired',
+    'pt-BR': 'Código de verificação expirado',
+  },
 };
 
 export enum MessagesHelperKey {
   CODE_VERIFICATION_INVALID = 'CODE_VERIFICATION_INVALID',
+  CODE_VERIFICATION_EXPIRED = 'CODE_VERIFICATION_EXPIRED',
   ORGANIZATION_NOT_FOUND = 'ORGANIZATION_NOT_FOUND',
   PASSWORD_OR_EMAIL_INVALID = 'PASSWORD_OR_EMAIL_INVALID',
   USER_LOGGED = 'USER_LOGGED',

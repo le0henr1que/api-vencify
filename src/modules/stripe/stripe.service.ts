@@ -212,16 +212,16 @@ export class StripeService {
         throw new Error('Plan not found');
       }
 
-      return await transaction.subscription.create({
-        data: {
-          planId: getPlan.id,
-          startDate: new Date(),
-          endDate: new Date(new Date().setDate(new Date().getDate() + 30)),
-          organizationId: userInformation.organizationUser[0].organizationId,
-          status: StatusEnum.ACTIVE,
-          version: 1,
-        },
-      });
+      // return await transaction.subscription.create({
+      //   data: {
+      //     planId: getPlan.id,
+      //     startDate: new Date(),
+      //     endDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+      //     // organizationId: userInformation.organizationUser[0].organizationId,
+      //     status: StatusEnum.ACTIVE,
+      //     version: 1,
+      //   },
+      // });
     };
 
     return await this.prisma.$transaction(async (newTransaction) => {

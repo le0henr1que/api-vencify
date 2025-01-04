@@ -218,47 +218,6 @@ export class UserController {
 
     return response.status(HttpStatus.OK).json(id);
   }
-  @ApiOperation({ summary: 'Verify create token user' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-  })
-  @ApiExceptionResponse()
-  @IsPublic()
-  @Post('/verify')
-  protected async verifyTokenUserAsync(
-    @Res() response: Response,
-    @Request() request: RequestModel,
-    @Body() dto: verifyAccountCreateDtos,
-  ) {
-    await this.service.verifyCodeAccountCreate(
-      dto.token,
-      dto.userId,
-      getLanguage(request.headers['accept-language']),
-    );
-    return response.status(HttpStatus.OK).json();
-  }
-
-  @ApiOperation({ summary: 'Resend token user' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-  })
-  @ApiExceptionResponse()
-  @IsPublic()
-  @Post('/verify/resend')
-  protected async resendTokenAsyn(
-    @Res() response: Response,
-    @Request() request: RequestModel,
-    @Body() dto: verifyAccountCreateDtos,
-  ) {
-    console.log('1');
-    await this.service.resendTokenAsyn(
-      dto.userId,
-      getLanguage(request.headers['accept-language']),
-    );
-    return response
-      .status(HttpStatus.OK)
-      .json({ message: 'Resend token success' });
-  }
 
   @ApiOperation({ summary: 'Get assignments' })
   @ApiResponse({

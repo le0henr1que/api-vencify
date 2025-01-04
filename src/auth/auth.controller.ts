@@ -38,6 +38,11 @@ import { UserToken } from './dto/response/UserToken';
 import { AtGuard, LocalAuthGuard, RtGuard } from './guards';
 import { RequestModel } from './models/Request';
 import { UserPayload } from './models/UserPayload';
+import { RegisterDto } from './dto/request/register-user.dto';
+import { UserCreateDto } from 'src/modules/user/dto/request/user.create.dto';
+import { ApiExceptionResponse } from 'src/utils/swagger-schemas/SwaggerSchema';
+import { verifyAccountCreateDtos } from 'src/modules/user/dto/request/verify.account.create.token.dto';
+import { CodeCheckDto } from './dto/request/code-check.dto';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -82,7 +87,68 @@ export class AuthController {
 
     return response.status(HttpStatus.OK).send();
   }
+  @ApiOperation({ summary: 'Register a new user' })
+  @Post('register')
+  @IsPublic()
+  @UseGuards(ThrottlerGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async register(
+    @Request() request: RequestModel,
+    @Res() response: Response,
+    @Body() dto: UserCreateDto,
+    @AuthenticatedUser() currentUser: UserPayload,
+  ) {
+    const returnUser = await this.authService.register(
+      dto,
+      currentUser,
+      new AuditLogRequestInformation(
+        getIpAddress(request.headers['x-forwarded-for']),
+        request.url,
+        request.method,
+      ),
+      getLanguage(request.headers['accept-language']),
+    );
 
+    return response.status(HttpStatus.OK).send(returnUser);
+  }
+  @ApiOperation({ summary: 'Verify create token user' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+  })
+  @ApiExceptionResponse()
+  @IsPublic()
+  @Post('/verify-code')
+  protected async verifyTokenUserAsync(
+    @Res() response: Response,
+    @Request() request: RequestModel,
+    @Body() dto: verifyAccountCreateDtos,
+  ) {
+    const result = await this.authService.verifyCodeAccountCreate(
+      dto.token,
+      dto.email,
+      getLanguage(request.headers['accept-language']),
+    );
+    return response.status(HttpStatus.OK).json(result);
+  }
+
+  @ApiOperation({ summary: 'Send Verify Code' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+  })
+  @ApiExceptionResponse()
+  @IsPublic()
+  @Post('/code-check')
+  protected async sendCode(
+    @Res() response: Response,
+    @Request() request: RequestModel,
+    @Body() dto: CodeCheckDto,
+  ) {
+    await this.authService.codeCheck(
+      dto,
+      getLanguage(request.headers['accept-language']),
+    );
+    return response.status(HttpStatus.OK).json();
+  }
   @ApiOperation({ summary: 'Change password by recovery' })
   @Patch('recovery/password')
   @IsPublic()
