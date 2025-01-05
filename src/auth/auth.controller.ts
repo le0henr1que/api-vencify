@@ -130,7 +130,30 @@ export class AuthController {
     );
     return response.status(HttpStatus.OK).json(result);
   }
-
+  @ApiOperation({ summary: 'Verify change password token user' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+  })
+  @ApiExceptionResponse()
+  @IsPublic()
+  @Post('/verify-code/password')
+  protected async verifyChangePasswordTokenUser(
+    @Res() response: Response,
+    @Request() request: RequestModel,
+    @Body() dto: verifyAccountCreateDtos,
+  ) {
+    const result = await this.authService.checkCodeRecoveryPassword(
+      dto.token,
+      dto.email,
+      new AuditLogRequestInformation(
+        getIpAddress(request.headers['x-forwarded-for']),
+        request.url,
+        request.method,
+      ),
+      getLanguage(request.headers['accept-language']),
+    );
+    return response.status(HttpStatus.OK).json({ access_token: result });
+  }
   @ApiOperation({ summary: 'Send Verify Code' })
   @ApiResponse({
     status: HttpStatus.OK,

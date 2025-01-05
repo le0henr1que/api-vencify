@@ -8,6 +8,7 @@ import { UserAssignmentEntity } from './user.assignment.entity';
 import { UserRoleEntity } from './user.role.entity';
 
 export class UserEntity extends BaseEntity implements User {
+  subscription_id: string;
   notifications_enabled: boolean;
   notification_time_enum: $Enums.NotificationTimeEnum;
   notification_time: number;

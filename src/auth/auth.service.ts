@@ -9,10 +9,13 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import {
+  enumPlan,
   LogActionEnum,
   LogStatusEnum,
   MethodEnum,
+  NotificationTimeEnum,
   Prisma,
+  RoleEnum,
   StatusEnum,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -560,7 +563,7 @@ export class AuthService {
             );
           }
           const templateBody = registrationTemplateDataBind(templateHtml, {
-            name: dto.email,
+            name: dto.name,
             userCode,
           });
           console.log(userCode);
@@ -597,7 +600,160 @@ export class AuthService {
     try {
       return await this.prisma.$transaction(
         async (transaction: Prisma.TransactionClient) => {
-          ///continuar aqui
+          const {
+            access_token,
+            isNotification,
+            notificationInterval,
+            organization_name,
+          } = registerDto;
+
+          const validateToken = await this.jwtService.decode(access_token);
+          console.log(validateToken);
+          if (!validateToken) {
+            throw new UnauthorizedException(
+              setMessage(
+                getMessage(MessagesHelperKey.ACCESS_DENIED, languagePreference),
+                access_token,
+              ),
+            );
+          }
+
+          const isExist = await transaction.user.findFirst({
+            where: { email: validateToken.email },
+          });
+
+          if (isExist?.emailVerificationToken !== validateToken?.code) {
+            throw new UnauthorizedException(
+              setMessage(
+                getMessage(MessagesHelperKey.ACCESS_DENIED, languagePreference),
+                access_token,
+              ),
+            );
+          }
+
+          const plan = await transaction.plan.upsert({
+            where: { name: enumPlan.BASIC },
+            update: {},
+            create: {
+              name: enumPlan.BASIC,
+              price: 0,
+              durationInDays: 30,
+              userLimit: 1,
+            },
+          });
+
+          const sub = await transaction.subscription.upsert({
+            where: { user_id: isExist.id },
+            update: {},
+            create: {
+              user_id: isExist.id,
+              planId: plan.id,
+              startDate: new Date(),
+              endDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+            },
+          });
+
+          const org = await transaction.organization.create({
+            data: {
+              name: organization_name,
+              ownerId: isExist.id,
+            },
+          });
+
+          const handleNotificationTime = (notificationInterval: string) => {
+            const enums = {
+              [NotificationTimeEnum.DAILY]: 1,
+              [NotificationTimeEnum.WEEKLY]: 7,
+              [NotificationTimeEnum.MONTHLY]: 30,
+              [NotificationTimeEnum.HALF_MONTHLY]: 15,
+              [NotificationTimeEnum.THIRTY_MONTHLY]: 30,
+            };
+            return enums[notificationInterval] || notificationInterval;
+          };
+          const notificationTimeEnum = Object.values(
+            NotificationTimeEnum,
+          ).includes(notificationInterval as NotificationTimeEnum)
+            ? notificationInterval
+            : NotificationTimeEnum.OTHER;
+          const notificationTime = handleNotificationTime(notificationInterval);
+
+          const user = await transaction.user.update({
+            where: { id: isExist.id },
+            data: {
+              isEmailVerified: true,
+              subscription_id: sub.id,
+              notification_time: notificationTime,
+              notification_time_enum:
+                notificationTimeEnum as NotificationTimeEnum,
+            },
+          });
+
+          const assignments = await transaction.assignment.findMany({});
+          const role = await transaction.role.findFirst({
+            where: { name: RoleEnum.ADMIN },
+          });
+
+          const OrgUser = await transaction.organizationUser.create({
+            data: {
+              organizationId: org.id,
+              userId: user.id,
+              ...(assignments && {
+                UserAssignment: {
+                  create: assignments.map((assignment) => ({
+                    create: true,
+                    read: true,
+                    update: true,
+                    delete: true,
+                    organizationUserId: org.id,
+                    Assignment: {
+                      connect: {
+                        id: assignment.id,
+                      },
+                    },
+                  })),
+                },
+              }),
+            },
+          });
+          const userRole = await transaction.userRole.create({
+            data: {
+              role: {
+                connect: {
+                  id: role.id,
+                },
+              },
+              organizationUserId: OrgUser.organizationId,
+            },
+          });
+          await transaction.organizationUser.update({
+            where: {
+              organizationId_userId: {
+                organizationId: OrgUser.organizationId,
+                userId: user.id,
+              },
+            },
+            data: {
+              Roles: {
+                connect: {
+                  id: userRole.id,
+                },
+              },
+            },
+          });
+          const usuario = await this.userService.findByEmail(
+            user.email,
+            languagePreference,
+            {
+              transaction,
+              identifierRequest,
+            },
+          );
+
+          const tokens: UserToken = await this.getTokens(usuario, {
+            identifierRequest,
+          });
+
+          return tokens;
         },
       );
     } catch (error) {
@@ -921,6 +1077,100 @@ export class AuthService {
       });
     }
   }
+  async checkCodeRecoveryPassword(
+    code: string,
+    email: string,
+    request: AuditLogRequestInformation,
+    languagePreference: Languages,
+  ) {
+    const identifierRequest = randomUUID();
+    const functionName = 'checkCode';
+
+    const user = await this.userService.findByEmail(email, languagePreference, {
+      identifierRequest,
+    });
+    try {
+      if (!user) {
+        this.logger.debug(
+          `${identifierRequest} Error login! user ${email} not exists`,
+        );
+        throw new UnauthorizedException(
+          getMessage(
+            MessagesHelperKey.PASSWORD_OR_EMAIL_INVALID,
+            languagePreference,
+          ),
+        );
+      }
+
+      if (user.recoveryToken == null) {
+        this.logger.debug(
+          `${identifierRequest} Error login! user ${email} not have a recoveryToken`,
+        );
+        throw new UnauthorizedException(
+          getMessage(
+            MessagesHelperKey.PASSWORD_OR_EMAIL_INVALID,
+            languagePreference,
+          ),
+        );
+      }
+
+      const rtMatches = await bcrypt.compare(code, user.recoveryToken);
+
+      if (!rtMatches) {
+        this.logger.debug(
+          `${identifierRequest} Code recovery from user ${email} doesn't match`,
+        );
+
+        throw new ForbiddenException(
+          getMessage(MessagesHelperKey.ACCESS_DENIED, languagePreference),
+        );
+      }
+      const access_token = await this.jwtService.signAsync(
+        {
+          id: user.id,
+          email: user.email,
+          code,
+        },
+        {
+          secret: process.env.AT_SECRET_REFRESH_PASSWORD,
+          expiresIn: process.env.JWT_ACCESS_LIFETIME_REFRESH_PASSWORD,
+        },
+      );
+      this.logger.debug(
+        `${identifierRequest} Code recovery from user ${email} matches`,
+      );
+      return access_token;
+    } catch (error) {
+      this.logger.debug('Recovery password email was not sent');
+
+      await this.logService.createAuditLog(
+        new AuditLog(
+          functionName,
+          request.ip,
+          request.url,
+          MethodEnum[request.method],
+          user.email,
+          LogStatusEnum.ERROR,
+          LogActionEnum.SEND_EMAIL_RECOVERY_PASSWORD,
+          setMessage(
+            getMessage(MessagesHelperKey.FAIL_SENDING_EMAIL, 'pt-BR'),
+            user.email,
+          ),
+        ),
+        {
+          identifierRequest,
+        },
+      );
+
+      handleError(error, languagePreference, {
+        message: getMessage(
+          MessagesHelperKey.FAIL_SENDING_EMAIL,
+          languagePreference,
+        ),
+        identifierRequest,
+      });
+    }
+  }
 
   async sendRecoveryPasswordEmail(
     dto: EmailDto,
@@ -952,62 +1202,36 @@ export class AuthService {
     }
 
     try {
-      this.logger.log(
-        `${identifierRequest} Sending recovery password email to: ${userDb.email} `,
-      );
-
-      const token = await this.userService.encodeEmailToken(
-        userDb.email,
-        userDb.id,
-        languagePreference,
-        {
-          identifierRequest,
-        },
-      );
-
       await this.prisma.$transaction(
         async (transaction: Prisma.TransactionClient) => {
-          let templatePath = '';
+          const userCode = await generateVerificationCode(4);
 
-          const rootDir = process.cwd();
-
-          templatePath = join(
-            rootDir,
-            'src/utils/templates/recover-password.html',
-          );
-
+          const templatePath = 'src/utils/templates/verification-code.html';
           const templateHtml = readFileSync(templatePath).toString();
 
           if (!templateHtml || templateHtml == '') {
             this.logger.debug(`${identifierRequest} Template not found`);
             throw new Error(
-              'Não foi possível encontrar o template de recuperação de email',
+              'Não foi possível encontrar o template de registro de email',
             );
           }
-
-          const projectName = process.env.npm_package_name;
-
-          const link = `${process.env.FRONTEND_RECOVER_PASSWORD_URL}?token=${token}`;
-
-          const templateBody = recoverTemplateDataBind(templateHtml, {
+          const templateBody = registrationTemplateDataBind(templateHtml, {
             name: userDb.name,
-            projectName,
-            link,
+            userCode,
           });
-
-          const subject = 'Recuperação de senha';
+          console.log(userCode);
+          const subject = 'Redefinição de senha';
 
           await this.emailService.sendEmail(
             templateBody,
             subject,
-            userDb.email,
+            dto.email,
             languagePreference,
             {
               identifierRequest,
             },
           );
-
-          const tokenEncrypted = await hashData(token);
+          const tokenEncrypted = await hashData(userCode);
 
           await this.userRepository.updateAsync(
             userDb.id,
@@ -1113,18 +1337,11 @@ export class AuthService {
     const currentUser = null;
 
     try {
-      const userDataByToken: {
-        sub: string;
-        id: string;
-        iat: number;
-        exp: number;
-      } = await this.decodeEmailToken(dto.accessToken, languagePreference, {
-        identifierRequest,
-      });
+      const userDataByToken = await this.jwtService.decode(dto.accessToken);
 
       const user = (await this.userService.findBy(
         {
-          email: userDataByToken.sub,
+          email: userDataByToken.email,
         },
         {
           id: true,
@@ -1150,7 +1367,7 @@ export class AuthService {
 
       if (!user) {
         this.logger.debug(
-          `${identifierRequest} User with email ${userDataByToken.sub} not found`,
+          `${identifierRequest} User with email ${userDataByToken.email} not found`,
         );
 
         throw new UnauthorizedException(
@@ -1180,7 +1397,7 @@ export class AuthService {
 
       if (user?.recoveryToken) {
         recoveryTokenIsValid = await bcrypt.compare(
-          dto.accessToken,
+          userDataByToken.code,
           user.recoveryToken,
         );
       }
@@ -1509,8 +1726,9 @@ export class AuthService {
     },
   ) {
     const identifierRequest = optionals?.identifierRequest ?? randomUUID();
+    console.log('2', user);
     this.logger.debug(`${identifierRequest} Service - getTokens`);
-    console.log('1');
+    console.log('3', user);
     const {
       password,
       organizationUser,

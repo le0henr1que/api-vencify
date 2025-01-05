@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import { $Enums } from '@prisma/client';
 import { CrudType } from 'src/modules/base/interfaces/ICrudTypeMap';
 import { PlanCreateDto } from 'src/modules/plan/dto/request/plan.create.dto';
 import { PlanUpdateDto } from 'src/modules/plan/dto/request/plan.update.dto';
@@ -13,7 +14,7 @@ import { PlanTypeMap } from 'src/modules/plan/entity/plan.type.map';
 export const generateCreateInput =
   (): PlanTypeMap[CrudType.CREATE_UNCHECKED] => {
     const createInput: PlanCreateDto = {
-      name: '',
+      name: faker.helpers.arrayElement(Object.values($Enums.enumPlan)),
       price: 1,
       durationInDays: 1,
       userLimit: 1,

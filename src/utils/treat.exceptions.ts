@@ -26,11 +26,13 @@ export const handleError = (
   if (isDevelopmentEnviroment()) {
     console.log(`[HandleError] ${optionals?.identifierRequest} ${error}`);
   }
-
+  console.log(`[HandleError] ${optionals?.identifierRequest} ${error}`);
   if (error instanceof HttpException) {
     // Se for uma exceção específica do NestJS common, relance-a
+    console.log(`[HandleError] ${optionals?.identifierRequest} ${error}`);
     throw error;
   } else {
+    console.log(error);
     throw new InternalServerErrorException(
       optionals?.message
         ? optionals?.message

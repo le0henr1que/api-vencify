@@ -17,7 +17,7 @@ export class PlanEntity extends BaseEntity implements Plan {
     description: 'O nome do plano',
   })
   @IsNotEmpty({ message: 'O nome do plano é obrigatório' })
-  name: string;
+  name: $Enums.enumPlan;
 
   @ApiProperty({
     example: 'Plan Description',
