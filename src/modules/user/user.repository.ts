@@ -197,7 +197,6 @@ export class UserRepository extends BaseRepository<UserTypeMap> {
           not: StatusEnum.INACTIVE,
         },
       },
-
       include: {
         ownedOrganizations: true,
         organizationUser: {

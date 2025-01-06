@@ -116,38 +116,38 @@ export class AuthService {
       this.mongoModel,
     );
 
-    if (
-      websocketData &&
-      websocketData?.ip !== null &&
-      websocketData?.ip !== request.ip
-    ) {
-      await this.logService.createAuditLog(
-        new AuditLog(
-          functionName,
-          request?.ip,
-          request.url,
-          MethodEnum[request.method],
-          decodedToken.email,
-          LogStatusEnum.ERROR,
-          LogActionEnum.MULTIPLE_LOGIN,
-          errorMessage,
-        ),
-        {
-          identifierRequest,
-        },
-      );
+    // if (
+    //   websocketData &&
+    //   websocketData?.ip !== null &&
+    //   websocketData?.ip !== request.ip
+    // ) {
+    //   await this.logService.createAuditLog(
+    //     new AuditLog(
+    //       functionName,
+    //       request?.ip,
+    //       request.url,
+    //       MethodEnum[request.method],
+    //       decodedToken.email,
+    //       LogStatusEnum.ERROR,
+    //       LogActionEnum.MULTIPLE_LOGIN,
+    //       errorMessage,
+    //     ),
+    //     {
+    //       identifierRequest,
+    //     },
+    //   );
 
-      this.logger.debug(
-        `${identifierRequest} Multiple login detected. IP to validate: Request: ${request?.ip} -> IP in database: ${websocketData?.ip}`,
-      );
+    //   this.logger.debug(
+    //     `${identifierRequest} Multiple login detected. IP to validate: Request: ${request?.ip} -> IP in database: ${websocketData?.ip}`,
+    //   );
 
-      throw new UnauthorizedException(
-        getMessage(
-          MessagesHelperKey.MULTIPLE_LOGIN_MESSAGE,
-          languagePreference,
-        ),
-      );
-    }
+    //   throw new UnauthorizedException(
+    //     getMessage(
+    //       MessagesHelperKey.MULTIPLE_LOGIN_MESSAGE,
+    //       languagePreference,
+    //     ),
+    //   );
+    // }
   }
 
   async validateUser(

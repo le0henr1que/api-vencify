@@ -89,12 +89,13 @@ export class RequestIpMiddleware implements NestMiddleware {
       );
       next();
     } catch (err) {
-      res.status(419).json({
-        message: getMessage(
-          MessagesHelperKey.MULTIPLE_LOGIN_MESSAGE,
-          languagePreference,
-        ),
-      });
+      // res.status(419).json({
+      //   message: getMessage(
+      //     MessagesHelperKey.MULTIPLE_LOGIN_MESSAGE,
+      //     languagePreference,
+      //   ),
+      // });
+      console.log(err);
     }
   }
 }

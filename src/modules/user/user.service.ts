@@ -521,7 +521,7 @@ export class UserService {
         id,
         optionals?.transaction,
       );
-
+      console.log(data);
       const { ownedOrganizations, organizationUser, ...rest } = data;
 
       const { Roles, UserAssignment } = organizationUser.find(

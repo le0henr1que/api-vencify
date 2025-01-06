@@ -20,4 +20,7 @@ export class MockWebsocketModel {
   async deleteMany(): Promise<void> {
     // Mock implementation
   }
+  async findOne(): Promise<void> {
+    // Mock implementation
+  }
 }
