@@ -40,6 +40,7 @@ import { handleError } from 'src/utils/treat.exceptions';
 import { readFileSync } from 'fs';
 import { generateVerificationCode } from 'src/utils/handle-token-verification';
 import { registrationTemplateDataBind } from 'src/utils/templates/processors/registration-processor';
+import { LocalService } from '../aws/multer';
 import { CrudType } from '../base/interfaces/ICrudTypeMap';
 import { Paginated } from '../base/interfaces/IPaginated';
 import { EmailService } from '../email/email.service';
@@ -65,6 +66,7 @@ export class UserService {
     private readonly logService: LogService,
     private readonly websocketService: WebsocketService,
     private readonly prisma: PrismaService,
+    private readonly s3Service: LocalService,
     @InjectMapper() private readonly mapper: Mapper,
     private readonly emailService: EmailService,
     // private readonly stipeService: StripeService,
@@ -140,227 +142,114 @@ export class UserService {
     const identifierRequest = optionals?.identifierRequest || randomUUID();
     this.logger.log(`${identifierRequest} Update user`);
 
-    // if (currentUser.id === id && !currentUser.roles.includes(RoleEnum.ADMIN)) {
-    //   this.logger.warn(
-    //     `${identifierRequest} User is trying to update itself, returning without changes`,
-    //   );
+    const executeUpdate = async (transaction: Prisma.TransactionClient) => {
+      if (id == null || id.trim() == '') {
+        this.logger.debug(`${identifierRequest} Id is required`);
+        throw new BadRequestException(
+          getMessage(MessagesHelperKey.ID_REQUIRED, languagePreference),
+        );
+      }
 
-    //   throw new ForbiddenException(
-    //     getMessage(MessagesHelperKey.USER_UPDATE_YOURSELF, languagePreference),
-    //   );
-    // }
+      if (
+        (await this.exists({ id }, currentUser, languagePreference, {
+          transaction,
+        })) === false
+      ) {
+        this.logger.debug(`${identifierRequest} user not found`);
+        throw new NotFoundException(
+          setMessage(
+            getMessage(MessagesHelperKey.USER_NOT_FOUND, languagePreference),
+            id,
+          ),
+        );
+      }
 
-    // const executeUpdate = async (transaction: Prisma.TransactionClient) => {
-    //   if (id == null || id.trim() == '') {
-    //     this.logger.debug(`${identifierRequest} Id is required`);
-    //     throw new BadRequestException(
-    //       getMessage(MessagesHelperKey.ID_REQUIRED, languagePreference),
-    //     );
-    //   }
+      const userPreUpdate = (await this.findByIdAsync(
+        id,
+        currentUser,
+        languagePreference,
+        {
+          transaction,
+        },
+      )) as UserEntity;
+      console.log(data);
+      const userUpdateInput: Prisma.UserUpdateInput = {
+        version: data.version,
+        name: data.name,
+        whatsapp_number: data.whatsapp_number,
+        phone_number: data.phone_number,
+      };
+      const userUpdated = await transaction.user.update({
+        where: {
+          id,
+        },
+        data: userUpdateInput,
+      });
+      this.logger.debug(`${identifierRequest} User history created for logs`);
 
-    //   if (
-    //     (await this.exists({ id }, currentUser, languagePreference, {
-    //       transaction,
-    //     })) === false
-    //   ) {
-    //     this.logger.debug(`${identifierRequest} user not found`);
-    //     throw new NotFoundException(
-    //       setMessage(
-    //         getMessage(MessagesHelperKey.USER_NOT_FOUND, languagePreference),
-    //         id,
-    //       ),
-    //     );
-    //   }
+      await this.logService.createAuditLog(
+        new AuditLog(
+          'update',
+          currentUser.ip,
+          `/usuarios/${id}`,
+          MethodEnum.PUT,
+          currentUser.email,
+          LogStatusEnum.SUCCESS,
+          LogActionEnum.UPDATE,
+          setMessage(
+            getMessage(MessagesHelperKey.USER_UPDATED_SUCCESS, 'pt-BR'),
+            userPreUpdate.email,
+          ),
+        ),
+        {
+          identifierRequest,
+          transaction: transaction,
+        },
+      );
 
-    //   const userPreUpdate = (await this.findByIdAsync(
-    //     id,
-    //     currentUser,
-    //     languagePreference,
-    //     {
-    //       transaction,
-    //     },
-    //   )) as UserEntity;
+      return userUpdated;
+    };
 
-    //   const userUpdateInput: Prisma.UserUpdateInput = {
-    //     version: data.version,
-    //   };
+    try {
+      if (optionals?.transaction) {
+        this.logger.debug(`${identifierRequest} Executing in transaction`);
 
-    //   if (data.name) userUpdateInput.name = data.name;
+        return await executeUpdate(optionals?.transaction);
+      } else {
+        this.logger.debug(
+          `${identifierRequest} Transaction doesn't exists, creating a new transaction`,
+        );
 
-    //   if (data.email) {
-    //     if (
-    //       (await this.exists(
-    //         { email: data.email, id: { not: id } },
-    //         currentUser,
-    //         languagePreference,
-    //         {
-    //           transaction,
-    //         },
-    //       )) === true
-    //     ) {
-    //       this.logger.debug(`${identifierRequest} Email already exists`);
-    //       throw new ConflictException(
-    //         getMessage(
-    //           MessagesHelperKey.EMAIL_ALREADY_EXISTS,
-    //           languagePreference,
-    //         ),
-    //       );
-    //     }
+        return this.prisma.$transaction(async (newTransaction) => {
+          return await executeUpdate(newTransaction);
+        });
+      }
+    } catch (error) {
+      this.logger.debug(`${identifierRequest} rollin back transaction`);
 
-    //     userUpdateInput.email = data.email;
-    //   }
+      await this.logService.createAuditLog(
+        new AuditLog(
+          'update',
+          currentUser.ip,
+          `/usuarios/${id}`,
+          MethodEnum.PUT,
+          currentUser.email,
+          LogStatusEnum.ERROR,
+          LogActionEnum.UPDATE,
+          setMessage(
+            getMessage(MessagesHelperKey.USER_UPDATED_ERROR, 'pt-BR'),
+            id,
+          ),
+        ),
+        {
+          identifierRequest,
+        },
+      );
 
-    //   if (data.mediaUrl) {
-    //     this.logger.debug(`${identifierRequest} Has mediaUrl`);
-
-    //     userUpdateInput.Media = {
-    //       upsert: {
-    //         where: {
-    //           id: userPreUpdate?.mediaId || undefined,
-    //         },
-    //         create: {
-    //           url: data.mediaUrl,
-    //         },
-    //         update: {
-    //           url: data.mediaUrl,
-    //         },
-    //       },
-    //     };
-    //   }
-
-    //   if (data.rolesIds && data.rolesIds.length > 0) {
-    //     this.logger.debug(`${identifierRequest} Updating roles`);
-
-    //     await this.userRepository.removeAllRoles(id, transaction);
-
-    //     userUpdateInput.Roles = {
-    //       create: data.rolesIds.map((roleId) => ({
-    //         Role: {
-    //           connect: {
-    //             id: roleId,
-    //           },
-    //         },
-    //       })),
-    //     };
-    //   }
-
-    //   if (data.assignments && data.assignments.length > 0) {
-    //     this.logger.debug(`${identifierRequest} Update assignments`);
-
-    //     await this.userRepository.removeAllAssignments(id, transaction);
-
-    //     userUpdateInput.UserAssignment = {
-    //       create: data.assignments.map((assignment) => ({
-    //         create: assignment.create,
-    //         read: assignment.read,
-    //         update: assignment.update,
-    //         delete: assignment.delete,
-    //         Assignment: {
-    //           connect: {
-    //             id: assignment.assignmentId,
-    //           },
-    //         },
-    //       })),
-    //     };
-    //   }
-
-    //   const userUpdated = await this.userRepository.updateAsync(
-    //     id,
-    //     userUpdateInput,
-    //     transaction,
-    //   );
-
-    //   // Used to maintain history of changes for the user and who edited it
-    //   const userPreUpdateJson = JSON.stringify({
-    //     id: userPreUpdate?.id,
-    //     name: userPreUpdate.name,
-    //     email: userPreUpdate.email,
-    //     UserAssignment: userPreUpdate?.UserAssignment?.map((userAssignment) => {
-    //       return {
-    //         id: userAssignment?.id,
-    //         name: userAssignment?.Assignment?.name,
-    //         create: userAssignment?.create,
-    //         read: userAssignment?.read,
-    //         update: userAssignment?.update,
-    //         delete: userAssignment?.delete,
-    //       };
-    //     }),
-    //     Roles: userPreUpdate?.Roles?.map((role) => {
-    //       return {
-    //         id: role?.id,
-    //         name: role?.Role?.name,
-    //       };
-    //     }),
-    //     status: userPreUpdate?.status,
-    //     version: userPreUpdate?.version,
-    //   });
-
-    //   this.logger.debug(`${identifierRequest} User history created for logs`);
-
-    //   await this.logService.createAuditLog(
-    //     new AuditLog(
-    //       'update',
-    //       currentUser.ip,
-    //       `/usuarios/${id}`,
-    //       MethodEnum.PUT,
-    //       currentUser.email,
-    //       LogStatusEnum.SUCCESS,
-    //       LogActionEnum.UPDATE,
-    //       setMessage(
-    //         getMessage(MessagesHelperKey.USER_UPDATED_SUCCESS, 'pt-BR'),
-    //         userPreUpdate.email,
-    //         userPreUpdateJson,
-    //       ),
-    //     ),
-    //     {
-    //       identifierRequest,
-    //       transaction: transaction,
-    //     },
-    //   );
-
-    //   return userUpdated;
-    // };
-
-    // try {
-    //   if (optionals?.transaction) {
-    //     this.logger.debug(`${identifierRequest} Executing in transaction`);
-
-    //     return await executeUpdate(optionals?.transaction);
-    //   } else {
-    //     this.logger.debug(
-    //       `${identifierRequest} Transaction doesn't exists, creating a new transaction`,
-    //     );
-
-    //     return this.prisma.$transaction(async (newTransaction) => {
-    //       return await executeUpdate(newTransaction);
-    //     });
-    //   }
-    // } catch (error) {
-    //   this.logger.debug(`${identifierRequest} rollin back transaction`);
-
-    //   await this.logService.createAuditLog(
-    //     new AuditLog(
-    //       'update',
-    //       currentUser.ip,
-    //       `/usuarios/${id}`,
-    //       MethodEnum.PUT,
-    //       currentUser.email,
-    //       LogStatusEnum.ERROR,
-    //       LogActionEnum.UPDATE,
-    //       setMessage(
-    //         getMessage(MessagesHelperKey.USER_UPDATED_ERROR, 'pt-BR'),
-    //         id,
-    //       ),
-    //     ),
-    //     {
-    //       identifierRequest,
-    //     },
-    //   );
-
-    //   handleError(error, languagePreference, {
-    //     identifierRequest,
-    //   });
-    // }
+      handleError(error, languagePreference, {
+        identifierRequest,
+      });
+    }
   }
 
   async deleteAsync(
@@ -1258,26 +1147,22 @@ export class UserService {
       if (body.mediaUrl) {
         this.logger.debug(`${identifierRequest} Has mediaUrl`);
 
-        userUpdateInput.Media = {
-          upsert: {
-            where: {
-              id: user.mediaId || undefined,
-            },
-            create: {
-              url: body.mediaUrl,
-            },
-            update: {
-              url: body.mediaUrl,
-            },
-          },
-        };
+        //   userUpdateInput.file = {
+        //     upsert: {
+        //       where: {
+        //         id: user.mediaId || undefined,
+        //       },
+        //       create: {},
+        //       update: {},
+        //     },
+        //   };
       }
 
-      await this.userRepository.updateAsync(
-        user.id,
-        userUpdateInput,
-        transaction,
-      );
+      // await this.userRepository.updateAsync(
+      //   user.id,
+      //   userUpdateInput,
+      //   transaction,
+      // );
 
       await this.logService.createAuditLog(
         new AuditLog(
@@ -1387,6 +1272,86 @@ export class UserService {
         secret: process.env.TK_EMAIL_SECRET,
         expiresIn: process.env.TK_EMAIL_LIFETIME,
       });
+    } catch (error) {
+      handleError(error, languagePreference, {
+        identifierRequest,
+      });
+    }
+  }
+
+  async uploadFile(
+    file: Express.Multer.File,
+    currentUser: UserPayload,
+    languagePreference: Languages,
+    optionals?: {
+      identifierRequest?: string;
+      transaction?: Prisma.TransactionClient;
+    },
+  ): Promise<{ id: string }> {
+    const identifierRequest = optionals?.identifierRequest || randomUUID();
+
+    const executeUpdate = async (transaction: Prisma.TransactionClient) => {
+      if (!file) {
+        throw new Error('File not found');
+      }
+      this.logger.debug(`${identifierRequest} Uploading file`);
+      await this.s3Service.uploadFile(
+        process.env.AWS_BUCKET_NAME,
+        `user/${currentUser.sub}.${file.mimetype.split('/')[1]}`,
+        file.buffer,
+      );
+      const fileId = await transaction.file.findFirst({
+        where: {
+          entity_id: currentUser.sub,
+        },
+      });
+
+      const result = await transaction.file.upsert({
+        where: {
+          id: fileId?.id || '0',
+        },
+        create: {
+          entity_id: currentUser.sub,
+          entity_name: 'USER',
+          file_name: `${currentUser.sub}.${file.mimetype.split('/')[1]}`,
+          file_type: file.mimetype,
+          s3_path: `user/${currentUser.sub}.${file.mimetype.split('/')[1]}`,
+        },
+        update: {
+          entity_id: currentUser.sub,
+          entity_name: 'USER',
+          file_name: `${currentUser.sub}.${file.mimetype.split('/')[1]}`,
+          file_type: file.mimetype,
+          s3_path: `user/${currentUser.sub}.${file.mimetype.split('/')[1]}`,
+        },
+      });
+
+      await transaction.user.update({
+        where: {
+          id: currentUser.sub,
+        },
+        data: {
+          avatar: `https://gr8x5ft5-3333.brs.devtunnels.ms/api/file/avatar/${currentUser.sub}`,
+        },
+      });
+
+      return { id: result.id };
+    };
+
+    try {
+      if (optionals?.transaction) {
+        this.logger.debug(`${identifierRequest} Executing in transaction`);
+
+        return await executeUpdate(optionals?.transaction);
+      } else {
+        this.logger.debug(
+          `${identifierRequest} Executing outside a transaction`,
+        );
+
+        return this.prisma.$transaction(async (newTransaction) => {
+          return await executeUpdate(newTransaction);
+        });
+      }
     } catch (error) {
       handleError(error, languagePreference, {
         identifierRequest,

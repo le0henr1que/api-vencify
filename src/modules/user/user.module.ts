@@ -18,6 +18,9 @@ import { StripeModule } from '../stripe/stripe.module';
 import { WebsocketService } from '../websocket/websocket.service';
 import { MockWebsocketModel } from '../mongo/mock-websocket.model';
 import { MockMongoService } from '../mongo/mock-mongo-service';
+import { FileService } from '../file/file.service';
+import { FileModule } from '../file/file.module';
+import { LocalService } from '../aws/multer';
 
 @Module({
   controllers: [UserController],
@@ -30,6 +33,7 @@ import { MockMongoService } from '../mongo/mock-mongo-service';
     EmailService,
     MongoService,
     MockMongoService,
+    LocalService,
     { provide: 'WebsocketModel', useClass: MockWebsocketModel },
   ],
   imports: [
@@ -37,6 +41,7 @@ import { MockMongoService } from '../mongo/mock-mongo-service';
     JwtModule,
     LogModule,
     WebsocketModule,
+    FileModule,
     // MongooseModule.forFeature([
     //   { name: WebsocketSchemaName, schema: WebsocketSchema },
     // ]),

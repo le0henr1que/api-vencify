@@ -1,20 +1,23 @@
-import { Controller } from '@nestjs/common';
 import {
   Body,
+  Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
   Query,
-  Res,
-  HttpCode,
-  HttpStatus,
   Request,
-  Patch,
+  Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -39,7 +42,8 @@ import {
   ApiOkResponsePaginated,
 } from 'src/utils/swagger-schemas/SwaggerSchema';
 
-import { BaseController } from '../base/base.controller';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { IsPublic } from 'src/auth/decorators/is-public.decorator';
 import { UpdateUserPersonalData } from './dto/request/update.personal.data.dto';
 import { UpdateUserPassword } from './dto/request/update.personal.password.dto';
 import { UserRestrictionBody } from './dto/request/user.block.dto';
@@ -51,8 +55,6 @@ import { UserPaginationResponse } from './dto/response/user.pagination.response'
 import { UserEntity } from './entity/user.entity';
 import { UserTypeMap } from './entity/user.type.map';
 import { UserService } from './user.service';
-import { IsPublic } from 'src/auth/decorators/is-public.decorator';
-import { verifyAccountCreateDtos } from './dto/request/verify.account.create.token.dto';
 
 @Controller('user')
 @ApiTags('User')
@@ -86,7 +88,41 @@ export class UserController {
 
     return response.status(HttpStatus.OK).json(filteredData);
   }
-
+  @Put('/avatar')
+  @ApiOperation({ summary: 'Upload user file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Arquivo para upload',
+    required: true,
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Assignments({
+    assignments: [AssignmentsEnum.FILE],
+    permissions: [AssignmentPermission.READ],
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Res() response: Response,
+    @Request() request: RequestModel,
+    @AuthenticatedUser() currentUser: UserPayload,
+  ) {
+    const result = await this.service.uploadFile(
+      file,
+      currentUser,
+      getLanguage(request.headers['accept-language']),
+    );
+    console.log(result);
+    return response.status(HttpStatus.OK).json(result);
+  }
   @ApiOperation({ summary: 'Get one user' })
   @HttpCode(HttpStatus.OK)
   @ApiResponse({

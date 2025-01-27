@@ -69,6 +69,9 @@ import { UserToken } from './dto/response/UserToken';
 import { UserPayload } from './models/UserPayload';
 import { RegisterDto } from './dto/request/register-user.dto';
 import { CodeCheckDto } from './dto/request/code-check.dto';
+import { ModifyPasswordWithOldPasswordDto } from './dto/request/modify-password-with-old-password.dto';
+import { FileService } from 'src/modules/file/file.service';
+import { LocalService } from 'src/modules/aws/multer';
 
 @Injectable()
 export class AuthService {
@@ -83,6 +86,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
     private mongoService: MongoService,
+    private readonly s3Service: LocalService,
+
     @InjectModel(WebsocketSchemaName)
     private readonly mongoModel: Model<WebsocketMongo>,
     // private readonly stipeService: StripeService,
@@ -942,7 +947,138 @@ export class AuthService {
       });
     }
   }
+  async modifyPasswordWithOldPassword(
+    currentUser: UserPayload,
+    dto: ModifyPasswordWithOldPasswordDto,
+    request: AuditLogRequestInformation,
+    languagePreference: Languages,
+  ) {
+    const identifierRequest = randomUUID();
+    const functionName = 'modify-password-with-old-password';
 
+    this.logger.log(`${identifierRequest} Modify Password With Old Password`);
+
+    try {
+      return await this.prisma.$transaction(
+        async (transaction: Prisma.TransactionClient) => {
+          const userDb = (await this.userService.findByIdAsync(
+            currentUser.id,
+            currentUser,
+            languagePreference,
+            { transaction, identifierRequest },
+          )) as UserEntity;
+
+          if (!userDb) {
+            this.logger.error(
+              `${identifierRequest} User with id ${currentUser.id} not found`,
+            );
+
+            await this.logService.createAuditLog(
+              new AuditLog(
+                functionName,
+                request.ip,
+                request.url,
+                MethodEnum[request.method],
+                currentUser.email,
+                LogStatusEnum.ERROR,
+                LogActionEnum.REFRESH_TOKEN,
+                setMessage(
+                  getMessage(MessagesHelperKey.REFRESH_TOKEN_ERROR, 'pt-BR'),
+                  currentUser.email,
+                ),
+              ),
+            ),
+              {
+                identifierRequest,
+              };
+            throw new ForbiddenException(
+              getMessage(MessagesHelperKey.ACCESS_DENIED, languagePreference),
+            );
+          }
+
+          this.logger.debug(
+            `${identifierRequest} User ${userDb.email} with ID ${userDb.id} found`,
+          );
+
+          const validPassword = await bcrypt.compare(
+            dto.oldPassword,
+            userDb?.password,
+          );
+          console.log(validPassword, 'PASSWORD VALID');
+          if (!validPassword) {
+            this.logger.debug(
+              `${identifierRequest} Old password from user ${userDb.email} doesn't match`,
+            );
+
+            await this.logService.createAuditLog(
+              new AuditLog(
+                functionName,
+                request.ip,
+                request.url,
+                MethodEnum[request.method],
+                userDb.email,
+                LogStatusEnum.ERROR,
+                LogActionEnum.REFRESH_TOKEN,
+                setMessage(
+                  getMessage(MessagesHelperKey.REFRESH_TOKEN_ERROR, 'pt-BR'),
+                  userDb.email,
+                ),
+              ),
+              {
+                identifierRequest,
+              },
+            );
+
+            throw new ForbiddenException(
+              getMessage(MessagesHelperKey.ACCESS_DENIED, languagePreference),
+            );
+          }
+
+          const newPassword = await hashData(dto.newPassword);
+
+          this.logger.debug(
+            `${identifierRequest} Old password from user ${userDb.email} matches. Updating password in the user's database`,
+          );
+
+          const updated = await transaction.user.update({
+            where: { id: userDb.id },
+            data: {
+              password: newPassword,
+            },
+          });
+
+          this.logger.debug(
+            `${identifierRequest} refreshToken updated successfully in the user's database. Returning tokens and exiting the service "refresh"`,
+          );
+
+          await this.logService.createAuditLog(
+            new AuditLog(
+              functionName,
+              request.ip,
+              request.url,
+              MethodEnum[request.method],
+              userDb.email,
+              LogStatusEnum.SUCCESS,
+              LogActionEnum.REFRESH_TOKEN,
+              setMessage(
+                getMessage(MessagesHelperKey.REFRESH_TOKEN, 'pt-BR'),
+                userDb.email,
+              ),
+            ),
+            {
+              identifierRequest,
+            },
+          );
+
+          return updated;
+        },
+      );
+    } catch (error) {
+      handleError(error, languagePreference, {
+        identifierRequest,
+      });
+    }
+  }
   async refreshToken(
     currentUser: UserPayload,
     request: AuditLogRequestInformation,

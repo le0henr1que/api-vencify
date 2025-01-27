@@ -47,33 +47,32 @@ export class EmailService {
     },
   ): Promise<void> {
     try {
-      const response = await axios.post(
-        'https://api.sendinblue.com/v3/smtp/email',
-        {
-          sender: { email: process.env.BREVO_SENDER_EMAIL, name: 'Your Name' },
-          to: [{ email: sendToEmail }],
-          subject: subject,
-          htmlContent: markup,
-          // Adicione outros campos necessários aqui
-        },
-        {
-          headers: {
-            'api-key': process.env.BREVO_API_KEY,
-            'Content-Type': 'application/json',
-          },
-        },
-      );
-
-      if (response.status === 201) {
-        this.logger.log(`Email sent to ${sendToEmail}`);
-      } else {
-        this.logger.error(
-          `Failed to send email to ${sendToEmail} - Status: ${response.status}`,
-        );
-        throw new InternalServerErrorException(
-          getMessage(MessagesHelperKey.FAIL_SENDING_EMAIL, languagePreference),
-        );
-      }
+      // const response = await axios.post(
+      //   'https://api.sendinblue.com/v3/smtp/email',
+      //   {
+      //     sender: { email: process.env.BREVO_SENDER_EMAIL, name: 'Your Name' },
+      //     to: [{ email: sendToEmail }],
+      //     subject: subject,
+      //     htmlContent: markup,
+      //     // Adicione outros campos necessários aqui
+      //   },
+      //   {
+      //     headers: {
+      //       'api-key': process.env.BREVO_API_KEY,
+      //       'Content-Type': 'application/json',
+      //     },
+      //   },
+      // );
+      // if (response.status === 201) {
+      //   this.logger.log(`Email sent to ${sendToEmail}`);
+      // } else {
+      //   this.logger.error(
+      //     `Failed to send email to ${sendToEmail} - Status: ${response.status}`,
+      //   );
+      //   throw new InternalServerErrorException(
+      //     getMessage(MessagesHelperKey.FAIL_SENDING_EMAIL, languagePreference),
+      //   );
+      // }
     } catch (error) {
       console.log(error);
       this.logger.error(`Failed to send email to ${sendToEmail}`, error);

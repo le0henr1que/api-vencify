@@ -145,6 +145,8 @@ model User {
   id                     String               @id @default(uuid()) @map("_id")
   name                   String               @db.VarChar(255)
   email                  String               @unique @db.VarChar(255)
+  whatsapp_number        String?              @unique @db.VarChar(255)
+  phone_number           String?              @unique @db.VarChar(255)
   password               String               @db.VarChar(255)
   login_method           LoginMethodEnum      @default(EMAIL)
   loginAttempts          Int                  @default(0)
@@ -159,11 +161,10 @@ model User {
   updated_at             DateTime?            @updatedAt @db.Timestamptz(3)
   deleted_at             DateTime?            @db.Timestamptz(3)
   version                Int                  @default(1)
-  mediaId                String?
+  avatar                 String?
   status                 StatusEnum           @default(ACTIVE)
   organizationUser       OrganizationUser[]
   ownedOrganizations     Organization[]       @relation("OrganizationOwner")
-  Media                  Media?               @relation(fields: [mediaId], references: [id], onDelete: Cascade)
   notifications_enabled  Boolean              @default(true)
   notification_time_enum NotificationTimeEnum @default(DAILY)
   notification_time      Int                  @default(1)
@@ -171,6 +172,8 @@ model User {
   subscription_id String?
   subscription    Subscription?
   Quota           Quota[]
+  File            File?         @relation(fields: [fileId], references: [id])
+  fileId          String?
 
   @@map("TB_USER")
 }
@@ -309,13 +312,22 @@ model Role {
   @@map("TB_ROLE")
 }
 
-model Media {
-  id          String   @id @default(uuid()) @map("_id")
-  url         String   @db.VarChar(800)
-  createdDate DateTime @default(now()) @db.Timestamptz(3)
-  User        User[]
+model File {
+  id          String          @id @default(uuid()) @map("_id")
+  file_name   String          @db.VarChar(255)
+  file_type   String          @db.VarChar(255)
+  s3_path     String          @db.VarChar(500)
+  entity_name AssignmentsEnum
+  entity_id   String          @db.VarChar(255)
 
-  @@map("TB_MEDIA")
+  version    Int        @default(1)
+  status     StatusEnum @default(ACTIVE)
+  created_at DateTime?  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime?  @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime?  @db.Timestamptz(3)
+  User       User[]
+
+  @@map("FILE")
 }
 
 enum RoleEnum {
@@ -373,6 +385,7 @@ enum AssignmentsEnum {
   USER
   ORGANIZATION
   PLAN
+  FILE
   CATEGORY
   PRODUCT
   BATCH

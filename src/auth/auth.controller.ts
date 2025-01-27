@@ -9,6 +9,7 @@ import {
   Res,
   UseGuards,
   Request,
+  Put,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -43,6 +44,7 @@ import { UserCreateDto } from 'src/modules/user/dto/request/user.create.dto';
 import { ApiExceptionResponse } from 'src/utils/swagger-schemas/SwaggerSchema';
 import { verifyAccountCreateDtos } from 'src/modules/user/dto/request/verify.account.create.token.dto';
 import { CodeCheckDto } from './dto/request/code-check.dto';
+import { ModifyPasswordWithOldPasswordDto } from './dto/request/modify-password-with-old-password.dto';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -334,6 +336,40 @@ export class AuthController {
     );
 
     return response.status(HttpStatus.OK).json(refreshResponse);
+  }
+  /**
+   * Send the refresh token in header as Authorization
+   */
+  @ApiOperation({ summary: 'Modify Password with old Password' })
+  @Put('modify/password')
+  @Assignments({
+    assignments: [AssignmentsEnum.USER],
+    permissions: [AssignmentPermission.CREATE, AssignmentPermission.UPDATE],
+  })
+  @UseGuards(AtGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  async ModifyWithOldPassword(
+    @AuthenticatedUser() currentUser: UserPayload,
+    @Res() response: Response,
+    @Request() request: RequestModel,
+    @Body() dto: ModifyPasswordWithOldPasswordDto,
+  ) {
+    await this.authService.modifyPasswordWithOldPassword(
+      currentUser,
+      dto,
+      new AuditLogRequestInformation(
+        getIpAddress(request.headers['x-forwarded-for']),
+        request.url,
+        request.method,
+      ),
+      getLanguage(request.headers['accept-language']),
+    );
+
+    return response.status(HttpStatus.OK).json({
+      message: 'Senha alterada com sucesso',
+    });
   }
 
   @ApiOperation({ summary: 'Current user information' })

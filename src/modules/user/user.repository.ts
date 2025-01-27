@@ -193,10 +193,12 @@ export class UserRepository extends BaseRepository<UserTypeMap> {
       where: {
         id,
         deleted_at: null,
+
         status: {
           not: StatusEnum.INACTIVE,
         },
       },
+
       include: {
         ownedOrganizations: true,
         organizationUser: {

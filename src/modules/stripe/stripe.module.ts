@@ -17,6 +17,7 @@ import { EmailModule } from '../email/email.module';
 import { MongoModule } from '../mongo/mong.module';
 import { MongoService } from '../mongo/mongo.service';
 import { MockWebsocketModel } from '../mongo/mock-websocket.model';
+import { LocalService } from '../aws/multer';
 
 @Module({
   controllers: [StripeController],
@@ -26,6 +27,7 @@ import { MockWebsocketModel } from '../mongo/mock-websocket.model';
     PrismaService,
     AuthService,
     MongoService,
+    LocalService,
     { provide: 'WebsocketModel', useClass: MockWebsocketModel },
   ],
   imports: [

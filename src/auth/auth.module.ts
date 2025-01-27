@@ -6,14 +6,12 @@ import { EmailService } from 'src/modules/email/email.service';
 import { LogModule } from 'src/modules/log/log.module';
 import { MongoModule } from 'src/modules/mongo/mong.module';
 import { MongoService } from 'src/modules/mongo/mongo.service';
-import {
-  WebsocketSchema,
-  WebsocketSchemaName,
-} from 'src/modules/mongo/websocket.model';
 import { UserRepository } from 'src/modules/user/user.repository';
 import { UserService } from 'src/modules/user/user.service';
 import { WebsocketModule } from 'src/modules/websocket/websocket.module';
 
+import { FileModule } from 'src/modules/file/file.module';
+import { MockWebsocketModel } from 'src/modules/mongo/mock-websocket.model';
 import { PlanModule } from 'src/modules/plan/plan.module';
 import { AuthController } from './auth.controller';
 import { AuthRepository } from './auth.repository';
@@ -21,7 +19,7 @@ import { AuthService } from './auth.service';
 import { AtStrategy } from './strategies/at.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { RtStrategy } from './strategies/rt.strategy';
-import { MockWebsocketModel } from 'src/modules/mongo/mock-websocket.model';
+import { LocalService } from 'src/modules/aws/multer';
 
 @Module({
   controllers: [AuthController],
@@ -36,6 +34,7 @@ import { MockWebsocketModel } from 'src/modules/mongo/mock-websocket.model';
     EmailService,
     MongoService,
     { provide: 'WebsocketModel', useClass: MockWebsocketModel },
+    LocalService,
   ],
   imports: [
     PrismaModule,
@@ -44,9 +43,6 @@ import { MockWebsocketModel } from 'src/modules/mongo/mock-websocket.model';
     PlanModule,
     WebsocketModule,
     MongoModule,
-    // MongooseModule.forFeature([
-    //   { name: WebsocketSchemaName, schema: WebsocketSchema },
-    // ]),
   ],
   exports: [AuthService, AuthRepository],
 })

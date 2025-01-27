@@ -36,6 +36,7 @@ import { MongoService } from './modules/mongo/mongo.service';
 import { UserModule } from './modules/user/user.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 import { StripeModule } from './modules/stripe/stripe.module';
+import { FileModule } from './modules/file/file.module';
 
 export const THROTTLER_LIMIT = 10;
 
@@ -73,6 +74,7 @@ export const THROTTLER_LIMIT = 10;
     }),
     // MongooseModule.forRoot(process.env.MONGODB_URI),
     AuthModule,
+    FileModule,
     LogModule,
     HealthCheckModule,
     PrismaModule,
